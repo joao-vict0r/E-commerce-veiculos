@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Venda de Carros — Anuncie e Compre</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f4f6f8;color:#222}
+      header{background:#002b45;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+      .logo{font-weight:700;font-size:18px}
+      .search{max-width:560px;flex:1;margin:0 20px}
+      .search input{width:100%;padding:8px;border-radius:4px;border:1px solid #ccc}
+      .actions button{background:#ff6b00;color:#fff;border:0;padding:8px 12px;border-radius:4px;cursor:pointer}
+
+      .hero{background:linear-gradient(90deg,#093a6b, #0a6fb7);color:#fff;padding:28px 20px}
+      .hero h1{margin:0;font-size:24px}
+      .container{max-width:1100px;margin:18px auto;padding:0 16px}
+
+      .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+      .card{background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 6px 14px rgba(15,15,15,0.06)}
+      .card img{width:100%;height:150px;object-fit:cover;background:#ddd}
+      .card .body{padding:12px}
+      .card h3{margin:0 0 6px;font-size:16px}
+      .card p{margin:0 0 8px;color:#666;font-size:14px}
+      .price{font-weight:700;color:#0b6bff}
+
+      footer{padding:18px 20px;text-align:center;color:#666;font-size:13px}
+
+      /* chat widget styles kept */
+      #chat-toggle{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0b6bff,#1aa261);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:9999;box-shadow:0 8px 20px rgba(11,107,255,0.18)}
+      #chat-modal{position:fixed;right:18px;bottom:86px;width:min(420px,95%);height:min(560px,80vh);background:#fff;border-radius:12px;box-shadow:0 18px 40px rgba(2,24,71,0.18);display:none;overflow:hidden;z-index:9999}
+      #chat-header{background:linear-gradient(90deg,#0b6bff,#1aa261);color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+      #chat-header button{background:transparent;border:0;color:#fff;font-size:16px;cursor:pointer}
+      #chat-iframe{width:100%;height:100%;border:0}
+      @media (max-width:480px){ #chat-modal{right:8px;left:8px;width:auto;height:70vh;bottom:16px;border-radius:8px} }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">CarrosJá</div>
+      <div class="search"><input placeholder="Buscar por marca, modelo, ano ou cidade"></div>
+      <div class="actions"><button onclick="location.href='#'">Anunciar</button></div>
+    </header>
+
+    <section class="hero">
+      <div class="container">
+        <h1>Encontre o próximo carro — anúncios verificados e ofertas próximas de você</h1>
+      </div>
+    </section>
+
+    <main class="container">
+      <h2 style="margin:12px 0">Anúncios em destaque</h2>
+      <div class="grid">
+        <div class="card">
+          <img src="https://via.placeholder.com/400x250?text=Carro+1" alt="Carro 1">
+          <div class="body">
+            <h3>Honda Civic 2018</h3>
+            <p>São Paulo • 45.000 km • Automático</p>
+            <div class="price">R$ 78.900</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <img src="https://via.placeholder.com/400x250?text=Carro+2" alt="Carro 2">
+          <div class="body">
+            <h3>Volkswagen Golf 2017</h3>
+            <p>Rio de Janeiro • 60.000 km • Manual</p>
+            <div class="price">R$ 65.000</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <img src="https://via.placeholder.com/400x250?text=Carro+3" alt="Carro 3">
+          <div class="body">
+            <h3>Ford Ka 2020</h3>
+            <p>Belo Horizonte • 30.000 km • Automático</p>
+            <div class="price">R$ 48.500</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <img src="https://via.placeholder.com/400x250?text=Carro+4" alt="Carro 4">
+          <div class="body">
+            <h3>Chevrolet Onix 2019</h3>
+            <p>Curitiba • 52.000 km • Automático</p>
+            <div class="price">R$ 59.900</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      © CarrosJá — Compras e vendas de veículos usados
+    </footer>
+
+    <!-- Chat widget: floating button + modal -->
+    <div id="chat-widget">
+      <button id="chat-toggle" aria-label="Abrir chat">💬</button>
+      <div id="chat-modal" role="dialog" aria-hidden="true">
+        <div id="chat-header">Atendimento <button id="chat-close">✖</button></div>
+        <iframe src="/chat" id="chat-iframe" title="Chat de Ajuda"></iframe>
+      </div>
+    </div>
+
+    <script>
+      const toggle = document.getElementById('chat-toggle');
+      const modal = document.getElementById('chat-modal');
+      const closeBtn = document.getElementById('chat-close');
+      toggle.addEventListener('click', ()=>{ modal.style.display = modal.style.display==='block' ? 'none' : 'block'; modal.setAttribute('aria-hidden', modal.style.display!=='block'); });
+      closeBtn.addEventListener('click', ()=>{ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); });
+    </script>
+  </body>
+</html>
