@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Cadastro de Veículos</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; }
+      .container { max-width: 760px; margin: 24px auto; background: white; padding: 22px; border-radius: 12px; box-shadow: 0 6px 18px rgba(15,23,42,.08); }
+      h1 { margin-top: 0; }
+      form { display: grid; gap: 10px; }
+      label { font-weight: 600; font-size: 14px; }
+      input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 4px; }
+      .actions { display: flex; gap: 8px; margin-top: 10px; }
+      button, a { border: 0; border-radius: 8px; padding: 10px 14px; text-decoration: none; font-weight: 600; }
+      button { background: #0b6bff; color: white; cursor: pointer; }
+      a { background: #1f2937; color: white; }
+      .success { background: #dcfce7; border: 1px solid #86efac; color: #166534; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+      .error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+      .required { color: #991b1b; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Área de Cadastro</h1>
+      <p>Cadastre os veículos que estarão disponíveis para venda.</p>
+
+      {% if created %}
+      <div class="success">Veículo cadastrado com sucesso.</div>
+      {% endif %}
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/cadastro">
+        <label>Marca <span class="required">*</span>
+          <input name="marca" value="{{ form_data.marca if form_data else '' }}" required>
+        </label>
+        <label>Modelo <span class="required">*</span>
+          <input name="modelo" value="{{ form_data.modelo if form_data else '' }}" required>
+        </label>
+        <label>Ano <span class="required">*</span>
+          <input name="ano" type="number" min="1950" max="2100" value="{{ form_data.ano if form_data else '' }}" required>
+        </label>
+        <label>Renavam <span class="required">*</span>
+          <input name="renavam" value="{{ form_data.renavam if form_data else '' }}" required>
+        </label>
+        <label>Placa <span class="required">*</span>
+          <input name="placa" placeholder="Ex: ABC1D23" value="{{ form_data.placa if form_data else '' }}" required>
+        </label>
+        <label>Data de vencimento do IPVA <span class="required">*</span>
+          <input name="ipva_vencimento" type="date" value="{{ form_data.ipva_vencimento if form_data else '' }}" required>
+        </label>
+        <label>Preço
+          <input name="preco" placeholder="Ex: 89900" value="{{ form_data.preco if form_data else '' }}">
+        </label>
+        <label>Quilometragem
+          <input name="km" placeholder="Ex: 42000" value="{{ form_data.km if form_data else '' }}">
+        </label>
+
+        <div class="actions">
+          <button type="submit">Salvar cadastro</button>
+          <a href="/">Voltar ao painel</a>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
