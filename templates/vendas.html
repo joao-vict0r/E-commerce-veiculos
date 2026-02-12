@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Área de Venda</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f1f5f9; }
+      .container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+      .btn { text-decoration: none; color: white; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
+      table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 14px rgba(15,23,42,0.08); }
+      th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+      th { background: #e2e8f0; }
+      .tag { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
+      .disponivel { background: #dcfce7; color: #166534; }
+      .vendido { background: #fee2e2; color: #991b1b; }
+      button { background: #0b6bff; color: white; border: 0; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+      button[disabled] { background: #9ca3af; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Área de Venda</h1>
+          <p>Controle os veículos disponíveis e marque os vendidos.</p>
+        </div>
+        <a class="btn" href="/">Voltar ao painel</a>
+      </div>
+
+      {% if vehicles %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Veículo</th>
+            <th>Ano</th>
+            <th>Placa</th>
+            <th>Renavam</th>
+            <th>Venc. IPVA</th>
+            <th>KM</th>
+            <th>Preço</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vehicle in vehicles %}
+          <tr>
+            <td>{{ vehicle.id }}</td>
+            <td>{{ vehicle.marca }} {{ vehicle.modelo }}</td>
+            <td>{{ vehicle.ano }}</td>
+            <td>{{ vehicle.placa or '-' }}</td>
+            <td>{{ vehicle.renavam or '-' }}</td>
+            <td>{{ vehicle.ipva_vencimento or '-' }}</td>
+            <td>{{ vehicle.km or '-' }}</td>
+            <td>{% if vehicle.preco %}R$ {{ vehicle.preco }}{% else %}-{% endif %}</td>
+            <td><span class="tag {{ vehicle.status }}">{{ vehicle.status }}</span></td>
+            <td>
+              <form method="post" action="/vendas/{{ vehicle.id }}/vender">
+                <button type="submit" {% if vehicle.status == 'vendido' %}disabled{% endif %}>Marcar como vendido</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>Não há veículos cadastrados. Acesse a área de cadastro para incluir o primeiro veículo.</p>
+      {% endif %}
+    </div>
+  </body>
+</html>
