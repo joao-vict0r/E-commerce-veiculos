@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Nota Fiscal - {{ sale.id }}</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111}
+      .nota{max-width:800px;margin:0 auto;border:1px solid #e5e7eb;padding:18px;border-radius:8px}
+      h1{margin-top:0}
+      .row{display:flex;justify-content:space-between}
+      .section{margin-top:12px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{padding:8px;border:1px solid #e5e7eb;text-align:left}
+      .print-btn{display:inline-block;padding:8px 12px;background:#0b6bff;color:#fff;border-radius:8px;text-decoration:none}
+      @media print{ .print-btn{display:none} }
+    </style>
+  </head>
+  <body>
+    <div class="nota">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h1>Nota de Venda</h1>
+        <div>
+          <a class="print-btn" href="#" onclick="window.print();return false">Imprimir</a>
+          <a class="print-btn" href="#" id="downloadPdfBtn" style="margin-left:8px">Baixar PDF</a>
+        </div>
+      </div>
+
+      <div class="section">
+        <strong>Dados da Venda</strong>
+        <table>
+          <tr><th>Venda ID</th><td>{{ sale.id }}</td></tr>
+          <tr><th>Vendedor</th><td>{{ sale.vendedor }}</td></tr>
+          <tr><th>Data</th><td>{{ sale.get('created_at', '') }}</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <strong>Veículo</strong>
+        <table>
+          <tr><th>Modelo</th><td>{{ sale.vehicle.marca }} {{ sale.vehicle.modelo }}</td></tr>
+          <tr><th>Cor</th><td>{{ sale.vehicle.cor or '-' }}</td></tr>
+          <tr><th>Placa</th><td>{{ sale.vehicle.placa }}</td></tr>
+          <tr><th>Renavam</th><td>{{ sale.vehicle.renavam or '-' }}</td></tr>
+          <tr><th>Preço base</th><td>R$ {{ "%.2f"|format(sale.base_price) }}</td></tr>
+          <tr><th>Negociação</th><td>{% if sale.houve_negociacao %}Sim - {{ sale.negociacao_desc }} (R$ {{ "%.2f"|format(sale.negociacao_valor) }}){% else %}Não{% endif %}</td></tr>
+          <tr><th>Preço final</th><td><strong>R$ {{ "%.2f"|format(sale.final_price) }}</strong></td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <strong>Cliente</strong>
+        <table>
+          <tr><th>Nome</th><td>{{ sale.cliente_nome }}</td></tr>
+          <tr><th>CPF</th><td>{{ sale.cliente_cpf }}</td></tr>
+          <tr><th>CNH</th><td>{{ sale.cliente_cnh or '-' }}</td></tr>
+          <tr><th>Endereço</th><td>{{ sale.cliente_endereco or '-' }}</td></tr>
+          <tr><th>Forma Pagamento</th><td>{{ sale.forma_pagamento or '-' }}</td></tr>
+        </table>
+      </div>
+
+    </div>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+      <script>
+        document.getElementById('downloadPdfBtn').addEventListener('click', function(e){
+          e.preventDefault();
+          const element = document.querySelector('.nota');
+          const opt = {
+            margin:       10,
+            filename:     'nota-{{ sale.id }}.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          // generate the PDF
+          html2pdf().set(opt).from(element).save();
+        });
+      </script>
+  </body>
+</html>

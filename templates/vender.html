@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Registrar Venda</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f1f5f9; }
+      .container { max-width: 780px; margin: 24px auto; padding: 0 16px; }
+      .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
+      label { display:block; margin-top:8px; font-weight:600 }
+      input, select, textarea { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #e5e7eb }
+      .row { display:flex; gap:12px; flex-wrap:wrap }
+      .col { flex:1 }
+      .col-cep { flex: 0 0 140px }
+      .col-cpf { flex: 0 0 45% }
+      .col-cnh { flex: 1 }
+      .neg-header { display:flex; align-items:center; gap:12px }
+      .neg-toggle { display:flex; align-items:center; gap:8px; font-weight:600 }
+      .actions { margin-top:12px; display:flex; gap:8px }
+      .small { font-size:13px; color:#374151 }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <h1>Registrar Venda</h1>
+          <p class="small">Veículo: {{ vehicle.marca }} {{ vehicle.modelo }} — Cor: {{ vehicle.cor or '-' }} — Placa: {{ (vehicle.placa or '-')|upper }} — Preço atual: R$ {{ vehicle.preco }}</p>
+         
+        </div>
+        <a href="/vendas">Voltar</a>
+      </div>
+
+      <div class="card">
+        {% if error %}
+        <div style="background:#fee2e2;color:#991b1b;padding:10px;border-radius:6px;margin-bottom:8px">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/vendas/{{ vehicle.id }}/vender" id="vendaForm">
+          <label>Vendedor</label>
+          <select name="vendedor_name" required style="margin-bottom:8px">
+            {% if sellers %}
+              {% for s in sellers %}
+                <option value="{{ s.name or s.username }}" {% if (s.name==user.name) or (s.username==user.username) %}selected{% endif %}>{{ s.name or s.username }}</option>
+              {% endfor %}
+            {% else %}
+              <option value="{{ user.name or user.username }}" selected>{{ user.name or user.username }}</option>
+            {% endif %}
+          </select>
+          <h3>Dados do Cliente</h3>
+          <label>Nome completo</label>
+          <input name="cliente_nome" required value="{{ form_data.cliente_nome if form_data else '' }}">
+
+          <div class="row">
+            <div class="col-cpf">
+              <label>CPF</label>
+              <input name="cliente_cpf" id="cliente_cpf" required value="{{ form_data.cliente_cpf if form_data else '' }}">
+            </div>
+            <div class="col-cnh">
+              <label>Número da CNH</label>
+              <input name="cliente_cnh" value="{{ form_data.cliente_cnh if form_data else '' }}">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-cep">
+              <label>CEP</label>
+              <input name="cliente_cep" id="cliente_cep" placeholder="00000-000" value="{{ form_data.cliente_cep if form_data else '' }}">
+            </div>
+            <div class="col">
+              <label>Endereço / Residência</label>
+              <input name="cliente_endereco" id="cliente_endereco" value="{{ form_data.cliente_endereco if form_data else '' }}">
+            </div>
+          </div>
+
+          <h3>Forma de Pagamento</h3>
+          <select name="forma_pagamento" required>
+            <option value="">-- selecione --</option>
+            <option value="dinheiro" {% if form_data and form_data.forma_pagamento=='dinheiro' %}selected{% endif %}>Dinheiro</option>
+            <option value="cartao_credito" {% if form_data and form_data.forma_pagamento=='cartao_credito' %}selected{% endif %}>Cartão crédito</option>
+            <option value="cartao_debito" {% if form_data and form_data.forma_pagamento=='cartao_debito' %}selected{% endif %}>Cartão débito</option>
+            <option value="financiamento" {% if form_data and form_data.forma_pagamento=='financiamento' %}selected{% endif %}>Financiamento</option>
+          </select>
+
+          <div class="neg-header">
+            <h3 style="margin:0">Negociação (opcional)</h3>
+            <label class="neg-toggle"><input type="checkbox" id="negCheckbox"> Houve negociação?</label>
+          </div>
+
+          <div id="negContainer" style="display:none">
+            <label>Descrição da negociação</label>
+            <textarea name="negociacao_desc" rows="3">{{ form_data.negociacao_desc if form_data else '' }}</textarea>
+            <label>Valor a abater (R$)</label>
+            <input name="negociacao_valor" id="negValor" placeholder="0.00" value="{{ form_data.negociacao_valor if form_data else '' }}">
+            <input type="hidden" name="houve_negociacao" id="houve_negociacao" value="no">
+          </div>
+
+          <h3>Resumo</h3>
+          <p class="small">Preço base: R$ <span id="basePrice">{{ vehicle.preco }}</span></p>
+          <p class="small">Valor negociação: R$ <span id="negDisplay">0.00</span></p>
+          <p class="small"><strong>Preço final: R$ <span id="finalPrice">{{ vehicle.preco }}</span></strong></p>
+
+          <div class="actions">
+            <button type="submit">Confirmar venda</button>
+            <a href="/vendas"><button type="button">Cancelar</button></a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const negCheckbox = document.getElementById('negCheckbox');
+      const negContainer = document.getElementById('negContainer');
+      const negValor = document.getElementById('negValor');
+      const basePriceEl = document.getElementById('basePrice');
+      const negDisplay = document.getElementById('negDisplay');
+      const finalPrice = document.getElementById('finalPrice');
+      const houveNeg = document.getElementById('houve_negociacao');
+      const cpfInput = document.getElementById('cliente_cpf');
+      const cepInput = document.getElementById('cliente_cep');
+      const enderecoInput = document.getElementById('cliente_endereco');
+      const form = document.getElementById('vendaForm');
+
+      function parsePrice(v){
+        if(!v) return 0.0;
+        // accept both 1234.56 and 1.234,56
+        v = v.toString().replace(/R\$|\s/g,'');
+        v = v.replace(/\./g,'').replace(',', '.');
+        const n = parseFloat(v);
+        return isNaN(n)?0.0:n;
+      }
+
+      function formatPrice(n){
+        return n.toFixed(2);
+      }
+
+      const basePrice = parsePrice(basePriceEl.textContent || basePriceEl.innerText);
+
+      negCheckbox.addEventListener('change', ()=>{
+        negContainer.style.display = negCheckbox.checked ? 'block' : 'none';
+        houveNeg.value = negCheckbox.checked ? 'yes' : 'no';
+        if(!negCheckbox.checked){
+          negValor.value = '';
+          negDisplay.textContent = '0.00';
+          finalPrice.textContent = formatPrice(basePrice);
+        }
+      });
+
+      negValor.addEventListener('input', ()=>{
+        const val = parsePrice(negValor.value);
+        negDisplay.textContent = formatPrice(val);
+        const final = Math.max(0, basePrice - val);
+        finalPrice.textContent = formatPrice(final);
+      });
+
+      function validateCPF(cpf){
+        if(!cpf) return false;
+        cpf = cpf.replace(/\D/g,'');
+        if(cpf.length !== 11) return false;
+        if(/^([0-9])\1+$/.test(cpf)) return false;
+        const calc = (t)=>{
+          let sum=0;
+          for(let i=0;i<t;i++) sum += parseInt(cpf.charAt(i)) * (t+1-i);
+          let r = 11 - (sum % 11);
+          return r>9?0:r;
+        }
+        return calc(9) === parseInt(cpf.charAt(9)) && calc(10) === parseInt(cpf.charAt(10));
+      }
+
+      form.addEventListener('submit', (ev)=>{
+        const cpf = cpfInput.value || '';
+        if(!validateCPF(cpf)){
+          ev.preventDefault();
+          alert('CPF inválido. Verifique e tente novamente.');
+          cpfInput.focus();
+          return false;
+        }
+      });
+
+      // CEP lookup via ViaCEP
+      async function fetchCep(cep){
+        cep = (cep || '').replace(/\D/g,'');
+        if(cep.length !== 8) return null;
+        try{
+          const res = await fetch('https://viacep.com.br/ws/'+cep+'/json/');
+          if(!res.ok) return null;
+          const data = await res.json();
+          if(data.erro) return null;
+          return data;
+        }catch(e){
+          return null;
+        }
+      }
+
+      if(cepInput){
+        cepInput.addEventListener('blur', async ()=>{
+          const cep = (cepInput.value||'').replace(/\D/g,'');
+          if(cep.length !== 8) return;
+          const data = await fetchCep(cep);
+          if(data){
+            const parts = [data.logradouro, data.bairro, data.localidade, data.uf].filter(Boolean);
+            enderecoInput.value = parts.join(' - ');
+          }else{
+            // opcional: limpar ou notificar
+          }
+        });
+      }
+
+      // initialize
+      finalPrice.textContent = formatPrice(basePrice);
+      negDisplay.textContent = '0.00';
+    </script>
+  </body>
+</html>

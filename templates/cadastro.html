@@ -40,6 +40,9 @@
         <label>Modelo <span class="required">*</span>
           <input name="modelo" value="{{ form_data.modelo if form_data else '' }}" required>
         </label>
+        <label>Cor
+          <input name="cor" placeholder="Ex: Preto, Branco, Vermelho" value="{{ form_data.cor if form_data else '' }}">
+        </label>
         <label>Ano <span class="required">*</span>
           <input name="ano" type="number" min="1950" max="2100" value="{{ form_data.ano if form_data else '' }}" required>
         </label>
@@ -53,7 +56,7 @@
           <input name="ipva_vencimento" type="date" value="{{ form_data.ipva_vencimento if form_data else '' }}" required>
         </label>
         <label>Preço
-          <input name="preco" placeholder="Ex: 89900" value="{{ form_data.preco if form_data else '' }}">
+          <input id="preco_input" name="preco" placeholder="Ex: 89900 ou 89900,00" value="{{ form_data.preco if form_data else '' }}">
         </label>
         <label>Quilometragem
           <input name="km" placeholder="Ex: 42000" value="{{ form_data.km if form_data else '' }}">
@@ -65,5 +68,30 @@
         </div>
       </form>
     </div>
+    <script>
+      (function(){
+        const preco = document.getElementById('preco_input');
+        function parsePrice(v){
+          if(!v) return 0.0;
+          v = v.toString().replace(/R\$|\s/g,'');
+          v = v.replace(/\./g,'').replace(',', '.');
+          const n = parseFloat(v);
+          return isNaN(n)?0.0:n;
+        }
+        function formatPrice(n){
+          return n.toFixed(2);
+        }
+        if(preco){
+          preco.addEventListener('blur', ()=>{
+            const v = parsePrice(preco.value);
+            if(v === 0){
+              // leave empty if user cleared
+              if(preco.value.trim()==='') return;
+            }
+            preco.value = formatPrice(v);
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

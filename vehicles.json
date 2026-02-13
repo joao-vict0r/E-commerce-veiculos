@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "d276d472",
+    "marca": "volkswagen",
+    "modelo": "Gol",
+    "ano": "2005",
+    "renavam": "12334454",
+    "placa": "DPX7620",
+    "ipva_vencimento": "2026-12-12",
+    "preco": "21000.00",
+    "km": "230.000",
+    "status": "vendido"
+  },
+  {
+    "id": "7e6e3ba4",
+    "marca": "Honda",
+    "modelo": "Honda Civic",
+    "ano": "2026",
+    "renavam": "33123123123123",
+    "placa": "ERP0101",
+    "ipva_vencimento": "2026-09-13",
+    "preco": "25000.00",
+    "km": "80.000",
+    "status": "vendido"
+  },
+  {
+    "id": "88ae86ca",
+    "marca": "volkswagen",
+    "modelo": "Golf",
+    "ano": "2006",
+    "renavam": "rerwerwer",
+    "placa": "HRL0901",
+    "ipva_vencimento": "2026-07-11",
+    "preco": "25000",
+    "km": "80.000",
+    "status": "disponivel"
+  }
+]

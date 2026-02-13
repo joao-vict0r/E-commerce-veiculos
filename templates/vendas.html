@@ -5,18 +5,172 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Área de Venda</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f1f5f9; }
-      .container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-      .btn { text-decoration: none; color: white; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
-      table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 14px rgba(15,23,42,0.08); }
-      th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-      th { background: #e2e8f0; }
-      .tag { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
-      .disponivel { background: #dcfce7; color: #166534; }
-      .vendido { background: #fee2e2; color: #991b1b; }
-      button { background: #0b6bff; color: white; border: 0; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
-      button[disabled] { background: #9ca3af; cursor: not-allowed; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+      .container {
+        width: 100%;
+        margin: 0;
+        padding: 24px clamp(14px, 2.6vw, 36px) 24px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .header h1 {
+        margin: 0 0 8px;
+      }
+      .header p {
+        margin: 0;
+        color: #475569;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 44px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-dark {
+        background: #1f2937;
+        color: #ffffff;
+      }
+      .search-form {
+        margin-bottom: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .search-input {
+        flex: 1 1 380px;
+        min-width: 260px;
+        height: 44px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding: 0 12px;
+        font-size: 16px;
+      }
+      .link-clear {
+        color: #6b21a8;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .link-clear:hover {
+        text-decoration: underline;
+      }
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th, td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: break-word;
+      }
+      th {
+        background: #e2e8f0;
+        white-space: nowrap;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .cell-vehicle {
+        width: 16%;
+      }
+      .cell-price {
+        width: 9%;
+      }
+      .cell-action {
+        width: 170px;
+        min-width: 170px;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 999px;
+      }
+      .disponivel {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .vendido {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .action-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        min-width: 138px;
+      }
+      .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        border-radius: 10px;
+        border: 0;
+        text-decoration: none;
+        font-weight: 600;
+        color: #ffffff;
+        background: #0b6bff;
+        padding: 0 10px;
+        white-space: nowrap;
+        font-size: 16px;
+      }
+      .action-btn.disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+      @media (max-width: 1100px) {
+        table {
+          min-width: 1080px;
+          table-layout: auto;
+        }
+        th, td {
+          white-space: nowrap;
+          word-break: normal;
+        }
+      }
+      @media (max-width: 860px) {
+        .container {
+          padding: 18px 12px;
+        }
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .search-input {
+          min-width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -26,46 +180,70 @@
           <h1>Área de Venda</h1>
           <p>Controle os veículos disponíveis e marque os vendidos.</p>
         </div>
-        <a class="btn" href="/">Voltar ao painel</a>
+        <a class="btn btn-dark" href="/">Voltar ao painel</a>
       </div>
 
+      <form method="get" action="/vendas" class="search-form">
+        <input
+          class="search-input"
+          name="q"
+          placeholder="Pesquisar por placa ou descrição"
+          value="{{ q or '' }}"
+        >
+        <button type="submit" class="btn btn-dark">Pesquisar</button>
+        <a href="/vendas" class="link-clear">Limpar</a>
+      </form>
+
       {% if vehicles %}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Veículo</th>
-            <th>Ano</th>
-            <th>Placa</th>
-            <th>Renavam</th>
-            <th>Venc. IPVA</th>
-            <th>KM</th>
-            <th>Preço</th>
-            <th>Status</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for vehicle in vehicles %}
-          <tr>
-            <td>{{ vehicle.id }}</td>
-            <td>{{ vehicle.marca }} {{ vehicle.modelo }}</td>
-            <td>{{ vehicle.ano }}</td>
-            <td>{{ vehicle.placa or '-' }}</td>
-            <td>{{ vehicle.renavam or '-' }}</td>
-            <td>{{ vehicle.ipva_vencimento or '-' }}</td>
-            <td>{{ vehicle.km or '-' }}</td>
-            <td>{% if vehicle.preco %}R$ {{ vehicle.preco }}{% else %}-{% endif %}</td>
-            <td><span class="tag {{ vehicle.status }}">{{ vehicle.status }}</span></td>
-            <td>
-              <form method="post" action="/vendas/{{ vehicle.id }}/vender">
-                <button type="submit" {% if vehicle.status == 'vendido' %}disabled{% endif %}>Marcar como vendido</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Veículo</th>
+              <th>Cor</th>
+              <th>Ano</th>
+              <th>Placa</th>
+              <th>Renavam</th>
+              <th>Venc. IPVA</th>
+              <th>KM</th>
+              <th>Preço</th>
+              <th>Data</th>
+              <th>Vendedor</th>
+              <th>Status</th>
+              <th class="cell-action">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+              <td>{{ vehicle.id }}</td>
+              <td class="cell-vehicle">{{ vehicle.marca }} {{ vehicle.modelo }}</td>
+              <td>{{ vehicle.cor or '-' }}</td>
+              <td>{{ vehicle.ano }}</td>
+              <td>{{ (vehicle.placa or '-')|upper }}</td>
+              <td>{{ vehicle.renavam or '-' }}</td>
+              <td>{{ vehicle.ipva_vencimento or '-' }}</td>
+              <td>{{ vehicle.km or '-' }}</td>
+              <td class="cell-price">{% if vehicle.preco %}R$ {{ vehicle.preco }}{% else %}-{% endif %}</td>
+              <td>{{ vehicle.venda_data or '-' }}</td>
+              <td>{{ vehicle.vendedor or '-' }}</td>
+              <td><span class="tag {{ vehicle.status }}">{{ vehicle.status }}</span></td>
+              <td class="cell-action">
+                <div class="action-group">
+                  {% if vehicle.status == 'vendido' %}
+                    <span class="action-btn disabled">Vender</span>
+                    <a href="/vendas/{{ vehicle.id }}/nota" target="_blank" class="action-btn">Gerar nota</a>
+                  {% else %}
+                    <a href="/vendas/{{ vehicle.id }}/vender" class="action-btn">Vender</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p>Não há veículos cadastrados. Acesse a área de cadastro para incluir o primeiro veículo.</p>
       {% endif %}
