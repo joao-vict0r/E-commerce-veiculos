@@ -24,6 +24,7 @@
     <div class="container">
       <h1>Área de Cadastro</h1>
       <p>Cadastre os veículos que estarão disponíveis para venda.</p>
+      <p>Usuário logado: <strong>{{ user.name or user.username }}</strong> · <a href="/logout">Sair</a></p>
 
       {% if created %}
       <div class="success">Veículo cadastrado com sucesso.</div>
