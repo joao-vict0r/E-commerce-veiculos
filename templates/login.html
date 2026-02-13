@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login de Segurança - ERP Veículos</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1d4ed8);
+      }
+      .card {
+        width: min(420px, 92vw);
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 20px 45px rgba(2, 6, 23, 0.28);
+      }
+      h1 {
+        margin-top: 0;
+        margin-bottom: 8px;
+      }
+      p {
+        margin-top: 0;
+        color: #475569;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 12px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 6px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        height: 42px;
+        padding: 0 12px;
+      }
+      button {
+        width: 100%;
+        margin-top: 16px;
+        height: 44px;
+        border: 0;
+        border-radius: 10px;
+        background: #0b6bff;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .error {
+        margin-top: 12px;
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .hint {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>ERP de Veículos</h1>
+      <p>Acesso restrito. Faça login com usuário e senha cadastrados.</p>
+
+      <form method="post" action="/login">
+        <label>Usuário
+          <input name="username" value="{{ username or '' }}" required>
+        </label>
+
+        <label>Senha
+          <input type="password" name="password" required>
+        </label>
+
+        <button type="submit">Entrar</button>
+      </form>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <p class="hint">Dica para administrador: cadastre a senha no arquivo <code>users.json</code> no campo <code>password</code>.</p>
+    </main>
+  </body>
+</html>

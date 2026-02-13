@@ -3,6 +3,8 @@
     "id": 1,
     "username": "joao",
     "email": "joao@example.com",
-    "name": "João Silva"
+    "name": "João Silva",
+    "password": "123456",
+    "is_manager": true
   }
 ]
