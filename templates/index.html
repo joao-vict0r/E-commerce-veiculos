@@ -26,6 +26,7 @@
     <header>
       <h1>ERP de Veículos</h1>
       <p>Gestão de cadastro e vendas de veículos</p>
+      <p>Logado como: <strong>{{ user.name or user.username }}</strong> · <a href="/logout" style="color:#93c5fd">Sair</a></p>
     </header>
 
     <main class="container">
@@ -47,6 +48,9 @@
       <div class="actions">
         <a href="/cadastro" class="btn">Área de Cadastro</a>
         <a href="/vendas" class="btn secondary">Área de Venda</a>
+        {% if is_manager %}
+        <a href="/gerencial" class="btn secondary">Tela Gerencial</a>
+        {% endif %}
       </div>
 
       <section>

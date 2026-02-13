@@ -1,9 +1,10 @@
 # ERP de Veículos
 
-Aplicação Flask simples para gestão de estoque de veículos com duas áreas principais:
+Aplicação Flask simples para gestão de estoque de veículos com tela de login de segurança e duas áreas principais:
 
 - **Área de Cadastro**: cadastro de veículos para venda.
 - **Área de Venda**: visualização de estoque e marcação de veículos como vendidos.
+- **Tela Gerencial**: cadastro de comissão, cadastro de vendedor e criação de novos acessos com permissão gerencial.
 
 ## Como executar
 
@@ -21,9 +22,16 @@ python app.py
 
 3. Acesse no navegador:
 
-- Painel principal: `http://127.0.0.1:5000/`
+- Login: `http://127.0.0.1:5000/login`
+- Painel principal (após login): `http://127.0.0.1:5000/`
 - Cadastro: `http://127.0.0.1:5000/cadastro`
 - Vendas: `http://127.0.0.1:5000/vendas`
+- Gerencial: `http://127.0.0.1:5000/gerencial`
+
+Credencial padrão de exemplo em `users.json`:
+
+- Usuário: `joao`
+- Senha: `123456`
 
 ## Persistência de dados
 
