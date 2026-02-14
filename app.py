@@ -4,6 +4,8 @@ import json
 import os
 from typing import Any
 from datetime import datetime
+from urllib import error as urlerror
+from urllib import request as urlrequest
 from uuid import uuid4
 
 from flask import Flask, redirect, render_template, request, session, url_for
@@ -15,6 +17,7 @@ USERS_FILE = os.path.join(DATA_DIR, "users.json")
 SELLERS_FILE = os.path.join(DATA_DIR, "sellers.json")
 COMMISSIONS_FILE = os.path.join(DATA_DIR, "commissions.json")
 GOALS_FILE = os.path.join(DATA_DIR, "seller_goals.json")
+PIX_SETTINGS_FILE = os.path.join(DATA_DIR, "pix_settings.json")
 
 REQUIRED_FIELDS = {
     "marca": "Marca",
@@ -49,6 +52,32 @@ def create_app() -> Flask:
                 return json.load(f)
         except FileNotFoundError:
             return []
+
+    def load_pix_settings() -> dict[str, str]:
+        defaults = {
+            "pix_key": "",
+            "account_number": "",
+            "mp_access_token": "",
+            "beneficiary_name": "",
+        }
+        try:
+            with open(PIX_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                if not isinstance(loaded, dict):
+                    return defaults
+                return {**defaults, **loaded}
+        except FileNotFoundError:
+            return defaults
+
+    def save_pix_settings(settings: dict[str, str]) -> None:
+        payload = {
+            "pix_key": (settings.get("pix_key") or "").strip(),
+            "account_number": (settings.get("account_number") or "").strip(),
+            "mp_access_token": (settings.get("mp_access_token") or "").strip(),
+            "beneficiary_name": (settings.get("beneficiary_name") or "").strip(),
+        }
+        with open(PIX_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
     def save_users(users: list[dict]) -> None:
@@ -106,7 +135,104 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_user():
-        return {"user": get_current_seller(), "sellers": load_users(), "is_manager": bool(get_current_seller().get("is_manager"))}
+        return {
+            "user": get_current_seller(),
+            "sellers": load_users(),
+            "is_manager": bool(get_current_seller().get("is_manager")),
+            "pix_settings": load_pix_settings(),
+        }
+
+    def create_mercado_pago_pix_payment(
+        *, amount: float, description: str, payer_email: str, payer_name: str, payer_cpf: str, external_reference: str
+    ) -> dict[str, Any]:
+        clean_cpf = _clean_digits(payer_cpf)
+        if len(clean_cpf) != 11:
+            return {"status": "error", "message": "CPF do cliente inválido para pagamento Pix."}
+
+        if "@" not in payer_email:
+            return {"status": "error", "message": "Informe um e-mail válido do cliente para pagamento Pix."}
+
+        settings = load_pix_settings()
+        access_token = (settings.get("mp_access_token") or "").strip()
+        if not access_token:
+            return {"status": "error", "message": "Token do Mercado Pago não configurado. Atualize em Gerencial > Configuração Pix."}
+
+        payload = {
+            "transaction_amount": float(round(amount, 2)),
+            "description": description,
+            "payment_method_id": "pix",
+            "external_reference": external_reference,
+            "payer": {
+                "email": payer_email,
+                "first_name": payer_name or "Cliente",
+                "identification": {
+                    "type": "CPF",
+                    "number": clean_cpf,
+                },
+            },
+        }
+
+        body = json.dumps(payload).encode("utf-8")
+        req = urlrequest.Request(
+            "https://api.mercadopago.com/v1/payments",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+                "X-Idempotency-Key": str(uuid4()),
+            },
+            method="POST",
+        )
+        try:
+            with urlrequest.urlopen(req, timeout=12) as response:
+                mp_data = json.loads(response.read().decode("utf-8"))
+        except urlerror.HTTPError as exc:
+            raw = exc.read().decode("utf-8", errors="ignore")
+            return {"status": "error", "message": f"Mercado Pago retornou erro: {raw or exc.reason}"}
+        except Exception as exc:
+            return {"status": "error", "message": f"Falha ao gerar pagamento Pix no Mercado Pago: {exc}"}
+
+        tx_data = (mp_data.get("point_of_interaction") or {}).get("transaction_data") or {}
+        return {
+            "status": mp_data.get("status") or "pending",
+            "payment_id": mp_data.get("id"),
+            "qr_code": tx_data.get("qr_code", ""),
+            "qr_code_base64": tx_data.get("qr_code_base64", ""),
+            "ticket_url": tx_data.get("ticket_url", ""),
+            "message": "Pagamento Pix criado com sucesso no Mercado Pago.",
+        }
+
+    def get_mercado_pago_payment_status(payment_id: Any) -> dict[str, Any]:
+        settings = load_pix_settings()
+        access_token = (settings.get("mp_access_token") or "").strip()
+        if not access_token:
+            return {"status": "error", "message": "Token do Mercado Pago não configurado."}
+        if not payment_id:
+            return {"status": "error", "message": "ID do pagamento inválido."}
+
+        req = urlrequest.Request(
+            f"https://api.mercadopago.com/v1/payments/{payment_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            method="GET",
+        )
+        try:
+            with urlrequest.urlopen(req, timeout=12) as response:
+                mp_data = json.loads(response.read().decode("utf-8"))
+        except urlerror.HTTPError as exc:
+            raw = exc.read().decode("utf-8", errors="ignore")
+            return {"status": "error", "message": f"Mercado Pago retornou erro: {raw or exc.reason}"}
+        except Exception as exc:
+            return {"status": "error", "message": f"Falha ao consultar pagamento Pix: {exc}"}
+
+        tx_data = (mp_data.get("point_of_interaction") or {}).get("transaction_data") or {}
+        return {
+            "status": mp_data.get("status") or "pending",
+            "payment_id": mp_data.get("id"),
+            "qr_code": tx_data.get("qr_code", ""),
+            "qr_code_base64": tx_data.get("qr_code_base64", ""),
+            "ticket_url": tx_data.get("ticket_url", ""),
+            "message": "Status Pix consultado com sucesso.",
+        }
 
     def is_authenticated() -> bool:
         return bool(session.get("logged_user"))
@@ -595,6 +721,22 @@ def create_app() -> Flask:
                             })
                         save_seller_goals(goals)
                         success = "Meta de vendedor salva com sucesso."
+            elif action == "pix_settings":
+                pix_key = request.form.get("pix_key", "").strip()
+                account_number = request.form.get("account_number", "").strip()
+                mp_access_token = request.form.get("mp_access_token", "").strip()
+                beneficiary_name = request.form.get("beneficiary_name", "").strip()
+
+                if not pix_key or not account_number:
+                    error = "Informe chave Pix e número da conta para salvar a configuração."
+                else:
+                    save_pix_settings({
+                        "pix_key": pix_key,
+                        "account_number": account_number,
+                        "mp_access_token": mp_access_token,
+                        "beneficiary_name": beneficiary_name,
+                    })
+                    success = "Configuração de Pix atualizada com sucesso."
             else:
                 error = "Ação inválida."
 
@@ -612,6 +754,7 @@ def create_app() -> Flask:
             active_tab=active_tab,
             error=error,
             success=success,
+            pix_registry=load_pix_settings(),
         )
 
     @app.route("/", methods=["GET"])
@@ -776,6 +919,7 @@ def create_app() -> Flask:
             cliente_cnh = request.form.get("cliente_cnh", "").strip()
             cliente_endereco = request.form.get("cliente_endereco", "").strip()
             forma_pagamento = request.form.get("forma_pagamento", "")
+            cliente_email = request.form.get("cliente_email", "").strip()
             houve_negociacao = request.form.get("houve_negociacao", "no") == "yes"
             negociacao_desc = request.form.get("negociacao_desc", "").strip()
             negociacao_valor = request.form.get("negociacao_valor", "0").strip()
@@ -789,15 +933,6 @@ def create_app() -> Flask:
             neg_val = _to_float_price(negociacao_valor) if houve_negociacao else 0.0
             final_price = max(0.0, base_price - neg_val)
 
-            # update vehicle status, price and placa (maiúscula)
-            for v in vehicles:
-                if v["id"] == vehicle_id:
-                    v["status"] = "vendido"
-                    v["preco"] = f"{final_price:.2f}"
-                    v["placa"] = (v.get("placa") or "").upper()
-                    break
-            save_vehicles(vehicles)
-
             sale = {
                 "id": str(uuid4())[:8],
                 "vehicle_id": vehicle_id,
@@ -809,14 +944,43 @@ def create_app() -> Flask:
                 "cliente_cnh": cliente_cnh,
                 "cliente_endereco": cliente_endereco,
                 "forma_pagamento": forma_pagamento,
+                "cliente_email": cliente_email,
                 "houve_negociacao": houve_negociacao,
                 "negociacao_desc": negociacao_desc,
                 "negociacao_valor": neg_val,
                 "base_price": base_price,
                 "final_price": final_price,
             }
+
+            if forma_pagamento == "pix_mercado_pago":
+                pix_result = create_mercado_pago_pix_payment(
+                    amount=final_price,
+                    description=f"Compra do veículo {vehicle.get('marca', '')} {vehicle.get('modelo', '')}".strip(),
+                    payer_email=cliente_email,
+                    payer_name=cliente_nome,
+                    payer_cpf=cliente_cpf,
+                    external_reference=sale["id"],
+                )
+                if pix_result.get("status") == "error":
+                    return render_template(
+                        "vender.html",
+                        vehicle=vehicle,
+                        error=pix_result.get("message") or "Falha ao gerar Pix no Mercado Pago.",
+                        form_data=request.form,
+                    )
+                sale["pix_payment"] = pix_result
+
+            # update vehicle status, price and placa (maiúscula)
+            for v in vehicles:
+                if v["id"] == vehicle_id:
+                    v["status"] = "vendido"
+                    v["preco"] = f"{final_price:.2f}"
+                    v["placa"] = (v.get("placa") or "").upper()
+                    break
+            save_vehicles(vehicles)
+
             save_sale(sale)
-            return redirect(url_for("vendas"))
+            return redirect(url_for("nota", vehicle_id=vehicle_id))
 
         # GET -> show form
         return render_template("vender.html", vehicle=vehicle)
@@ -837,10 +1001,38 @@ def create_app() -> Flask:
             return redirect(url_for("vendas"))
         return render_template("nota.html", sale=sale)
 
+    @app.route("/vendas/<vehicle_id>/pix/atualizar", methods=["POST"])
+    def atualizar_status_pix(vehicle_id: str):
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        sales = load_sales()
+        sale_index = None
+        for i in range(len(sales) - 1, -1, -1):
+            if sales[i].get("vehicle_id") == vehicle_id:
+                sale_index = i
+                break
+
+        if sale_index is None:
+            return redirect(url_for("vendas"))
+
+        sale = sales[sale_index]
+        pix_payment = sale.get("pix_payment") or {}
+        payment_id = pix_payment.get("payment_id")
+        if not payment_id:
+            return redirect(url_for("nota", vehicle_id=vehicle_id))
+
+        sale["pix_payment"] = get_mercado_pago_payment_status(payment_id)
+        sales[sale_index] = sale
+        with open(SALES_FILE, "w", encoding="utf-8") as f:
+            json.dump(sales, f, ensure_ascii=False, indent=2)
+
+        return redirect(url_for("nota", vehicle_id=vehicle_id))
+
     return app
 
 
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=5000)
-

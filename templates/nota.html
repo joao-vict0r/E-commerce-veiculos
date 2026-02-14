@@ -55,9 +55,30 @@
           <tr><th>CPF</th><td>{{ sale.cliente_cpf }}</td></tr>
           <tr><th>CNH</th><td>{{ sale.cliente_cnh or '-' }}</td></tr>
           <tr><th>Endereço</th><td>{{ sale.cliente_endereco or '-' }}</td></tr>
+          <tr><th>E-mail</th><td>{{ sale.cliente_email or '-' }}</td></tr>
           <tr><th>Forma Pagamento</th><td>{{ sale.forma_pagamento or '-' }}</td></tr>
+          {% if sale.pix_payment %}
+          <tr><th>Status Pix (MP)</th><td>{{ sale.pix_payment.status or '-' }}</td></tr>
+          <tr><th>ID pagamento Pix</th><td>{{ sale.pix_payment.payment_id or '-' }}</td></tr>
+          <tr><th>Pix copia e cola</th><td style="word-break:break-all">{{ sale.pix_payment.qr_code or '-' }}</td></tr>
+          <tr><th>Boleto/Comprovante</th><td>{% if sale.pix_payment.ticket_url %}<a href="{{ sale.pix_payment.ticket_url }}" target="_blank">Abrir link do Mercado Pago</a>{% else %}-{% endif %}</td></tr>
+          {% endif %}
         </table>
       </div>
+
+      {% if sale.pix_payment and sale.pix_payment.qr_code_base64 %}
+      <div class="section">
+        <strong>QR Code Pix</strong>
+        <div style="margin-top:8px">
+          <img src="data:image/jpeg;base64,{{ sale.pix_payment.qr_code_base64 }}" alt="QR Code Pix" style="max-width:260px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;">
+        </div>
+      </div>
+      <div class="section">
+        <form method="post" action="/vendas/{{ sale.vehicle_id }}/pix/atualizar">
+          <button class="print-btn" type="submit">Atualizar status Pix</button>
+        </form>
+      </div>
+      {% endif %}
 
     </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>

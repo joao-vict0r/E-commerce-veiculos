@@ -210,6 +210,30 @@
         </aside>
       </section>
 
+
+
+      <section class="report-card">
+        <h2 style="margin-top:0">Configuração Pix (Mercado Pago)</h2>
+        <form method="post" action="/gerencial" class="filter-form">
+          <input type="hidden" name="action" value="pix_settings">
+          <input type="hidden" name="active_tab" value="gestao">
+          <label>Nome do favorecido
+            <input name="beneficiary_name" value="{{ pix_registry.beneficiary_name }}" placeholder="Empresa Recebedora LTDA">
+          </label>
+          <label>Chave Pix
+            <input name="pix_key" required value="{{ pix_registry.pix_key }}" placeholder="email, CPF, CNPJ ou chave aleatória">
+          </label>
+          <label>Número da conta
+            <input name="account_number" required value="{{ pix_registry.account_number }}" placeholder="0001 / 12345-6">
+          </label>
+          <label>Access token Mercado Pago
+            <input name="mp_access_token" value="{{ pix_registry.mp_access_token }}" placeholder="APP_USR-...">
+          </label>
+          <small style="grid-column:1/-1;color:#475569">Para o Pix funcionar no checkout, configure um Access Token válido da sua conta Mercado Pago.</small>
+          <button class="btn" type="submit">Salvar Pix</button>
+        </form>
+      </section>
+
       <section class="report-card">
         <h2 style="margin-top:0">Criar Acesso</h2>
         <form method="post" action="/gerencial" class="filter-form">

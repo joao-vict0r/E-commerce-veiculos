@@ -51,6 +51,9 @@
           <label>Nome completo</label>
           <input name="cliente_nome" required value="{{ form_data.cliente_nome if form_data else '' }}">
 
+          <label>E-mail do cliente</label>
+          <input name="cliente_email" id="cliente_email" type="email" placeholder="cliente@exemplo.com" value="{{ form_data.cliente_email if form_data else '' }}">
+
           <div class="row">
             <div class="col-cpf">
               <label>CPF</label>
@@ -80,7 +83,15 @@
             <option value="cartao_credito" {% if form_data and form_data.forma_pagamento=='cartao_credito' %}selected{% endif %}>Cartão crédito</option>
             <option value="cartao_debito" {% if form_data and form_data.forma_pagamento=='cartao_debito' %}selected{% endif %}>Cartão débito</option>
             <option value="financiamento" {% if form_data and form_data.forma_pagamento=='financiamento' %}selected{% endif %}>Financiamento</option>
+            <option value="pix_mercado_pago" {% if form_data and form_data.forma_pagamento=='pix_mercado_pago' %}selected{% endif %}>Pix (Mercado Pago)</option>
           </select>
+
+          <div style="margin-top:10px;padding:10px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe">
+            <strong>Dados de recebimento Pix:</strong>
+            <div class="small">Favorecido: {{ pix_settings.beneficiary_name or 'Não informado' }}</div>
+            <div class="small">Chave Pix: {{ pix_settings.pix_key or 'Não configurada' }}</div>
+            <div class="small">Conta: {{ pix_settings.account_number or 'Não configurada' }}</div>
+          </div>
 
           <div class="neg-header">
             <h3 style="margin:0">Negociação (opcional)</h3>
@@ -117,9 +128,11 @@
       const finalPrice = document.getElementById('finalPrice');
       const houveNeg = document.getElementById('houve_negociacao');
       const cpfInput = document.getElementById('cliente_cpf');
+      const emailInput = document.getElementById('cliente_email');
       const cepInput = document.getElementById('cliente_cep');
       const enderecoInput = document.getElementById('cliente_endereco');
       const form = document.getElementById('vendaForm');
+      const pagamentoSelect = document.querySelector('select[name="forma_pagamento"]');
 
       function parsePrice(v){
         if(!v) return 0.0;
@@ -174,6 +187,16 @@
           alert('CPF inválido. Verifique e tente novamente.');
           cpfInput.focus();
           return false;
+        }
+
+        if(pagamentoSelect && pagamentoSelect.value === 'pix_mercado_pago'){
+          const email = (emailInput?.value || '').trim();
+          if(!email || !email.includes('@')){
+            ev.preventDefault();
+            alert('Para Pix via Mercado Pago, informe um e-mail válido do cliente.');
+            emailInput?.focus();
+            return false;
+          }
         }
       });
 
