@@ -6,5 +6,12 @@
     "name": "João Silva",
     "password": "123456",
     "is_manager": true
+  },
+  {
+    "id": 2,
+    "username": "ygorM",
+    "name": "Ygor Melo",
+    "password": "123456",
+    "is_manager": false
   }
 ]

@@ -41,7 +41,7 @@ def save_vehicles(vehicles: list[dict[str, Any]]) -> None:
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "erp-veiculos-login-seguro")
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "carrofacil-login-seguro")
 
     def load_users() -> list[dict]:
         try:
@@ -182,6 +182,35 @@ def create_app() -> Flask:
             return dt
         except ValueError:
             return None
+
+    def normalize_text(value: Any) -> str:
+        return str(value or "").strip().lower()
+
+    def build_seller_month_goal(user: dict) -> dict:
+        seller_key = normalize_text(user.get("name") or user.get("username"))
+        now = datetime.now()
+        sold_so_far = 0
+
+        for sale in load_sales():
+            if normalize_text(sale.get("vendedor")) != seller_key:
+                continue
+            sale_dt = parse_sale_datetime(sale.get("created_at", ""))
+            if sale_dt and sale_dt.year == now.year and sale_dt.month == now.month:
+                sold_so_far += 1
+
+        goals_by_seller = {
+            normalize_text(goal.get("seller_name")): goal
+            for goal in load_seller_goals()
+            if normalize_text(goal.get("seller_name"))
+        }
+        seller_goal = goals_by_seller.get(seller_key) or {}
+        target_total = int(seller_goal.get("target", 0) or 0)
+
+        return {
+            "month_label": now.strftime("%m/%Y"),
+            "sold_so_far": sold_so_far,
+            "target_total": target_total,
+        }
 
     def build_reports(start_date: str, end_date: str) -> dict:
         dt_start = parse_filter_date((start_date or "").strip())
@@ -590,6 +619,9 @@ def create_app() -> Flask:
         auth_redirect = require_authentication()
         if auth_redirect:
             return auth_redirect
+        user = get_current_seller()
+        is_manager = bool(user.get("is_manager"))
+        seller_goal_dashboard = build_seller_month_goal(user) if not is_manager else None
         vehicles = load_vehicles()
         available = [v for v in vehicles if v["status"] == "disponivel"]
         sold = [v for v in vehicles if v["status"] == "vendido"]
@@ -599,6 +631,7 @@ def create_app() -> Flask:
             sold_count=len(sold),
             total_count=len(vehicles),
             recent_vehicles=list(reversed(vehicles[-5:])),
+            seller_goal_dashboard=seller_goal_dashboard,
         )
 
     @app.route("/cadastro", methods=["GET", "POST"])
@@ -810,3 +843,4 @@ def create_app() -> Flask:
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=5000)
+

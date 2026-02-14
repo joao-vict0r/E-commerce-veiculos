@@ -1,4 +1,4 @@
-# ERP de Veículos
+# CarroFácil
 
 Aplicação Flask simples para gestão de estoque de veículos com tela de login de segurança e duas áreas principais:
 
@@ -52,4 +52,3 @@ Campos opcionais:
 
 - Preço
 - Quilometragem
-

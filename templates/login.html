@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Login de Segurança - ERP Veículos</title>
+    <title>Login - CarroFácil</title>
     <style>
       body {
         margin: 0;
@@ -19,6 +19,16 @@
         border-radius: 14px;
         padding: 22px;
         box-shadow: 0 20px 45px rgba(2, 6, 23, 0.28);
+      }
+      .hero-gif-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+      .hero-gif {
+        width: min(260px, 100%);
+        height: auto;
+        border-radius: 10px;
       }
       h1 {
         margin-top: 0;
@@ -62,17 +72,19 @@
         border-radius: 8px;
         padding: 10px;
       }
-      .hint {
-        margin-top: 14px;
-        font-size: 13px;
-        color: #64748b;
-      }
     </style>
   </head>
   <body>
     <main class="card">
-      <h1>ERP de Veículos</h1>
-      <p>Acesso restrito. Faça login com usuário e senha cadastrados.</p>
+      <div class="hero-gif-wrap">
+        <img
+          class="hero-gif"
+          src="{{ url_for('static', filename='images/carro.gif') }}"
+          alt="Carro em movimento"
+        >
+      </div>
+      <h1>CarroFácil</h1>
+      <p>Bem vindo</p>
 
       <form method="post" action="/login">
         <label>Usuário
@@ -90,7 +102,6 @@
       <div class="error">{{ error }}</div>
       {% endif %}
 
-      <p class="hint">Dica para administrador: cadastre a senha no arquivo <code>users.json</code> no campo <code>password</code>.</p>
     </main>
   </body>
 </html>

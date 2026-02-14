@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>ERP Veículos</title>
+    <title>CarroFácil</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #1f2937; }
       header { background: #0f172a; color: white; padding: 16px 24px; }
@@ -11,6 +11,10 @@
       .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
       .card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08); }
       .value { font-size: 28px; font-weight: bold; color: #0b6bff; margin: 8px 0 0; }
+      .goal-title { margin: 0 0 8px; }
+      .goal-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+      .hero-strip { display: flex; justify-content: center; margin: 0 0 16px; }
+      .hero-gif { width: min(320px, 100%); height: auto; border-radius: 12px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12); }
       .actions { margin: 18px 0 26px; display: flex; gap: 10px; flex-wrap: wrap; }
       .btn { text-decoration: none; background: #0b6bff; color: white; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
       .btn.secondary { background: #1f2937; }
@@ -24,12 +28,17 @@
   </head>
   <body>
     <header>
-      <h1>ERP de Veículos</h1>
+      <h1>CarroFácil</h1>
       <p>Gestão de cadastro e vendas de veículos</p>
       <p>Logado como: <strong>{{ user.name or user.username }}</strong> · <a href="/logout" style="color:#93c5fd">Sair</a></p>
     </header>
 
     <main class="container">
+      <section class="hero-strip">
+        <img class="hero-gif" src="{{ url_for('static', filename='images/carro.gif') }}" alt="Carro em movimento">
+      </section>
+
+      {% if is_manager %}
       <section class="cards">
         <div class="card">
           <small>Total cadastrado</small>
@@ -44,6 +53,21 @@
           <p class="value">{{ sold_count }}</p>
         </div>
       </section>
+      {% else %}
+      <section>
+        <h2 class="goal-title">Meta mensal ({{ seller_goal_dashboard.month_label }})</h2>
+        <div class="cards goal-cards">
+          <div class="card">
+            <small>Total ate o momento</small>
+            <p class="value">{{ seller_goal_dashboard.sold_so_far }}</p>
+          </div>
+          <div class="card">
+            <small>Total cadastrado</small>
+            <p class="value">{{ seller_goal_dashboard.target_total }}</p>
+          </div>
+        </div>
+      </section>
+      {% endif %}
 
       <div class="actions">
         <a href="/cadastro" class="btn">Área de Cadastro</a>
