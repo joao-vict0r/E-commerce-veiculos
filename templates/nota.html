@@ -24,6 +24,7 @@
         <div>
           <a class="print-btn" href="#" onclick="window.print();return false">Imprimir</a>
           <a class="print-btn" href="#" id="downloadPdfBtn" style="margin-left:8px">Baixar PDF</a>
+          <a class="print-btn" href="{{ url_for('download_nota_xml', sale_id=sale.id) }}" style="margin-left:8px">Baixar XML</a>
         </div>
       </div>
 

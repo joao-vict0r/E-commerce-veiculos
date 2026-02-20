@@ -53,6 +53,7 @@
     "negociacao_desc": "",
     "negociacao_valor": 0.0,
     "base_price": 25000.0,
-    "final_price": 25000.0
+    "final_price": 25000.0,
+    "nota_xml_path": "C:\\Users\\Joaov\\OneDrive\\Ambiente de Trabalho\\bots python\\E-commerce-veiculos\\database\\notas_xml\\nota-714079fc.xml"
   }
 ]

@@ -76,7 +76,41 @@
         function parsePrice(v){
           if(!v) return 0.0;
           v = v.toString().replace(/R\$|\s/g,'');
-          v = v.replace(/\./g,'').replace(',', '.');
+          v = v.replace(/[^\d.,-]/g,'');
+          const hasComma = v.includes(',');
+          const hasDot = v.includes('.');
+
+          if(hasComma && hasDot){
+            if(v.lastIndexOf(',') > v.lastIndexOf('.')){
+              v = v.replace(/\./g,'').replace(',', '.');
+            }else{
+              v = v.replace(/,/g,'');
+            }
+          }else if(hasComma){
+            const parts = v.split(',');
+            if(parts.length > 2){
+              v = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+            }else{
+              v = v.replace(',', '.');
+            }
+          }else if(hasDot){
+            const parts = v.split('.');
+            if(parts.length > 2){
+              const last = parts[parts.length - 1];
+              if(last.length <= 2){
+                v = parts.slice(0, -1).join('') + '.' + last;
+              }else{
+                v = parts.join('');
+              }
+            }else{
+              const integerPart = parts[0];
+              const decimalPart = parts[1] || '';
+              if(decimalPart.length === 3){
+                v = integerPart + decimalPart;
+              }
+            }
+          }
+
           const n = parseFloat(v);
           return isNaN(n)?0.0:n;
         }

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<nota_venda>
+  <id>af68565a</id>
+  <created_at>2026-02-13 19:28:01</created_at>
+  <vendedor>Sem vendedor</vendedor>
+  <cliente>
+    <nome>joao victor</nome>
+    <cpf>1233491396</cpf>
+    <cnh>1212312312</cnh>
+    <endereco>R. Bahia, 5800 - Salto Weissbach, Blumenau - SC, 89032-001</endereco>
+  </cliente>
+  <veiculo>
+    <id>d276d472</id>
+    <marca>volkswagen</marca>
+    <modelo>Gol</modelo>
+    <ano>2005</ano>
+    <placa>DPX7620</placa>
+    <renavam>12334454</renavam>
+  </veiculo>
+  <pagamento>
+    <forma>cartao_debito</forma>
+    <base_price>21000.00</base_price>
+    <final_price>21000.00</final_price>
+  </pagamento>
+  <negociacao>
+    <houve>false</houve>
+    <descricao />
+    <valor>0.00</valor>
+  </negociacao>
+</nota_venda>

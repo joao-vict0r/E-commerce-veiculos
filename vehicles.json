@@ -34,5 +34,18 @@
     "preco": "25000.00",
     "km": "80.000",
     "status": "disponivel"
+  },
+  {
+    "id": "85a62e1b",
+    "marca": "volkswagen",
+    "modelo": "Golf",
+    "cor": "preto",
+    "ano": "2025",
+    "renavam": "12334454",
+    "placa": "HTL7676",
+    "ipva_vencimento": "2026-09-12",
+    "preco": "21000.00",
+    "km": "80.000",
+    "status": "disponivel"
   }
 ]

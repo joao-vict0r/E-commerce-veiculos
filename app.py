@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 from typing import Any
 from datetime import datetime
 from uuid import uuid4
+import xml.etree.ElementTree as ET
 
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, redirect, render_template, request, send_file, session, url_for
 
 DATA_DIR = os.path.dirname(__file__)
 VEHICLES_FILE = os.path.join(DATA_DIR, "vehicles.json")
@@ -15,6 +17,10 @@ USERS_FILE = os.path.join(DATA_DIR, "users.json")
 SELLERS_FILE = os.path.join(DATA_DIR, "sellers.json")
 COMMISSIONS_FILE = os.path.join(DATA_DIR, "commissions.json")
 GOALS_FILE = os.path.join(DATA_DIR, "seller_goals.json")
+DB_DIR = os.path.join(DATA_DIR, "database")
+DB_FILE = os.path.join(DB_DIR, "ecommerce_veiculos.db")
+DB_SCHEMA_FILE = os.path.join(DB_DIR, "schema.sql")
+NOTAS_XML_DIR = os.path.join(DB_DIR, "notas_xml")
 
 REQUIRED_FIELDS = {
     "marca": "Marca",
@@ -26,22 +32,413 @@ REQUIRED_FIELDS = {
 }
 
 
-def load_vehicles() -> list[dict[str, Any]]:
+def _read_json_array(path: str) -> list[dict[str, Any]]:
     try:
-        with open(VEHICLES_FILE, "r", encoding="utf-8") as file:
+        with open(path, "r", encoding="utf-8") as file:
             return json.load(file)
     except FileNotFoundError:
         return []
 
 
+def _to_db_float(value: Any) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = str(value or "").strip().replace("R$", "").replace(" ", "")
+    if not text:
+        return 0.0
+
+    text = "".join(ch for ch in text if ch.isdigit() or ch in {".", ",", "-"})
+    if not text or text in {"-", ".", ",", "-.", "-,"}:
+        return 0.0
+
+    negative = text.startswith("-")
+    if negative:
+        text = text[1:]
+
+    has_comma = "," in text
+    has_dot = "." in text
+
+    if has_comma and has_dot:
+        if text.rfind(",") > text.rfind("."):
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", "")
+    elif has_comma:
+        parts = text.split(",")
+        if len(parts) > 2:
+            text = "".join(parts[:-1]) + "." + parts[-1]
+        else:
+            text = text.replace(",", ".")
+    elif has_dot:
+        parts = text.split(".")
+        if len(parts) > 2:
+            last = parts[-1]
+            if len(last) <= 2:
+                text = "".join(parts[:-1]) + "." + last
+            else:
+                text = "".join(parts)
+        else:
+            integer_part, decimal_part = parts
+            if decimal_part and len(decimal_part) == 3 and integer_part.isdigit():
+                text = integer_part + decimal_part
+
+    if negative:
+        text = "-" + text
+
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
+
+
+def _to_db_bool_int(value: Any) -> int:
+    return 1 if bool(value) else 0
+
+
+def get_db_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(DB_FILE)
+    connection.execute("PRAGMA foreign_keys = ON;")
+    return connection
+
+
+def ensure_database_ready() -> None:
+    os.makedirs(DB_DIR, exist_ok=True)
+    os.makedirs(NOTAS_XML_DIR, exist_ok=True)
+
+    if not os.path.exists(DB_SCHEMA_FILE):
+        return
+
+    with get_db_connection() as connection:
+        schema_sql = ""
+        with open(DB_SCHEMA_FILE, "r", encoding="utf-8") as schema_file:
+            schema_sql = schema_file.read()
+        connection.executescript(schema_sql)
+
+        sales_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(sales)").fetchall()
+        }
+        if "nota_xml_path" not in sales_columns:
+            connection.execute("ALTER TABLE sales ADD COLUMN nota_xml_path TEXT")
+
+        connection.commit()
+
+
+def sync_users_to_db(users: list[dict[str, Any]]) -> None:
+    if not users:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for user in users:
+            username = str(user.get("username") or "").strip()
+            if not username:
+                continue
+
+            user_id: int | None = None
+            try:
+                user_id = int(user.get("id"))
+            except (TypeError, ValueError):
+                user_id = None
+
+            connection.execute(
+                """
+                INSERT INTO users (id, username, name, email, password, is_manager)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET
+                    name = excluded.name,
+                    email = excluded.email,
+                    password = excluded.password,
+                    is_manager = excluded.is_manager
+                """,
+                (
+                    user_id,
+                    username,
+                    str(user.get("name") or username).strip(),
+                    str(user.get("email") or "").strip(),
+                    str(user.get("password") or "").strip(),
+                    _to_db_bool_int(user.get("is_manager")),
+                ),
+            )
+        connection.commit()
+
+
+def sync_sellers_to_db(sellers: list[dict[str, Any]]) -> None:
+    if not sellers:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for seller in sellers:
+            seller_id = str(seller.get("id") or "").strip()
+            if not seller_id:
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO sellers (id, name, phone, created_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    phone = excluded.phone
+                """,
+                (
+                    seller_id,
+                    str(seller.get("name") or "").strip(),
+                    str(seller.get("phone") or "").strip(),
+                    str(seller.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")).strip(),
+                ),
+            )
+        connection.commit()
+
+
+def sync_commissions_to_db(commissions: list[dict[str, Any]]) -> None:
+    if not commissions:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for commission in commissions:
+            commission_id = str(commission.get("id") or "").strip()
+            if not commission_id:
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO commissions (id, seller_name, percent, created_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    seller_name = excluded.seller_name,
+                    percent = excluded.percent
+                """,
+                (
+                    commission_id,
+                    str(commission.get("seller_name") or "").strip(),
+                    _to_db_float(commission.get("percent")),
+                    str(commission.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")).strip(),
+                ),
+            )
+        connection.commit()
+
+
+def sync_seller_goals_to_db(goals: list[dict[str, Any]]) -> None:
+    if not goals:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for goal in goals:
+            goal_id = str(goal.get("id") or "").strip()
+            if not goal_id:
+                continue
+
+            target_value = 0
+            try:
+                target_value = int(float(goal.get("target") or 0))
+            except (TypeError, ValueError):
+                target_value = 0
+
+            connection.execute(
+                """
+                INSERT INTO seller_goals (id, seller_name, target, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    seller_name = excluded.seller_name,
+                    target = excluded.target,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    goal_id,
+                    str(goal.get("seller_name") or "").strip(),
+                    max(0, target_value),
+                    str(goal.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")).strip(),
+                    str(goal.get("updated_at") or "").strip() or None,
+                ),
+            )
+        connection.commit()
+
+
+def sync_vehicles_to_db(vehicles: list[dict[str, Any]]) -> None:
+    if not vehicles:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for vehicle in vehicles:
+            vehicle_id = str(vehicle.get("id") or "").strip()
+            if not vehicle_id:
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO vehicles (
+                    id, marca, modelo, cor, ano, renavam, placa,
+                    ipva_vencimento, preco, km, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    marca = excluded.marca,
+                    modelo = excluded.modelo,
+                    cor = excluded.cor,
+                    ano = excluded.ano,
+                    renavam = excluded.renavam,
+                    placa = excluded.placa,
+                    ipva_vencimento = excluded.ipva_vencimento,
+                    preco = excluded.preco,
+                    km = excluded.km,
+                    status = excluded.status
+                """,
+                (
+                    vehicle_id,
+                    str(vehicle.get("marca") or "").strip(),
+                    str(vehicle.get("modelo") or "").strip(),
+                    str(vehicle.get("cor") or "").strip() or None,
+                    str(vehicle.get("ano") or "").strip(),
+                    str(vehicle.get("renavam") or "").strip(),
+                    str(vehicle.get("placa") or "").strip().upper(),
+                    str(vehicle.get("ipva_vencimento") or "").strip(),
+                    _to_db_float(vehicle.get("preco")),
+                    str(vehicle.get("km") or "").strip() or None,
+                    str(vehicle.get("status") or "disponivel").strip(),
+                ),
+            )
+        connection.commit()
+
+
+def create_nota_xml(sale: dict[str, Any]) -> str:
+    ensure_database_ready()
+
+    sale_id = str(sale.get("id") or "").strip()
+    if not sale_id:
+        sale_id = str(uuid4())[:8]
+
+    xml_path = os.path.join(NOTAS_XML_DIR, f"nota-{sale_id}.xml")
+    vehicle = sale.get("vehicle") if isinstance(sale.get("vehicle"), dict) else {}
+
+    root = ET.Element("nota_venda")
+    ET.SubElement(root, "id").text = sale_id
+    ET.SubElement(root, "created_at").text = str(sale.get("created_at") or "")
+    ET.SubElement(root, "vendedor").text = str(sale.get("vendedor") or "")
+
+    cliente = ET.SubElement(root, "cliente")
+    ET.SubElement(cliente, "nome").text = str(sale.get("cliente_nome") or "")
+    ET.SubElement(cliente, "cpf").text = str(sale.get("cliente_cpf") or "")
+    ET.SubElement(cliente, "cnh").text = str(sale.get("cliente_cnh") or "")
+    ET.SubElement(cliente, "endereco").text = str(sale.get("cliente_endereco") or "")
+
+    veiculo = ET.SubElement(root, "veiculo")
+    ET.SubElement(veiculo, "id").text = str(sale.get("vehicle_id") or vehicle.get("id") or "")
+    ET.SubElement(veiculo, "marca").text = str(vehicle.get("marca") or "")
+    ET.SubElement(veiculo, "modelo").text = str(vehicle.get("modelo") or "")
+    ET.SubElement(veiculo, "ano").text = str(vehicle.get("ano") or "")
+    ET.SubElement(veiculo, "placa").text = str(vehicle.get("placa") or "")
+    ET.SubElement(veiculo, "renavam").text = str(vehicle.get("renavam") or "")
+
+    pagamento = ET.SubElement(root, "pagamento")
+    ET.SubElement(pagamento, "forma").text = str(sale.get("forma_pagamento") or "")
+    ET.SubElement(pagamento, "base_price").text = f"{_to_db_float(sale.get('base_price')):.2f}"
+    ET.SubElement(pagamento, "final_price").text = f"{_to_db_float(sale.get('final_price')):.2f}"
+
+    negociacao = ET.SubElement(root, "negociacao")
+    ET.SubElement(negociacao, "houve").text = "true" if bool(sale.get("houve_negociacao")) else "false"
+    ET.SubElement(negociacao, "descricao").text = str(sale.get("negociacao_desc") or "")
+    ET.SubElement(negociacao, "valor").text = f"{_to_db_float(sale.get('negociacao_valor')):.2f}"
+
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="  ")
+    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+    return xml_path
+
+
+def sync_sales_to_db(sales: list[dict[str, Any]]) -> None:
+    if not sales:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for sale in sales:
+            sale_id = str(sale.get("id") or "").strip()
+            vehicle_id = str(sale.get("vehicle_id") or "").strip()
+            if not sale_id or not vehicle_id:
+                continue
+
+            vehicle_snapshot = sale.get("vehicle") if isinstance(sale.get("vehicle"), dict) else {}
+
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO sales (
+                        id, vehicle_id, vehicle_snapshot, vendedor, created_at,
+                        cliente_nome, cliente_cpf, cliente_cnh, cliente_endereco,
+                        forma_pagamento, houve_negociacao, negociacao_desc,
+                        negociacao_valor, base_price, final_price, nota_xml_path
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        vehicle_id = excluded.vehicle_id,
+                        vehicle_snapshot = excluded.vehicle_snapshot,
+                        vendedor = excluded.vendedor,
+                        created_at = excluded.created_at,
+                        cliente_nome = excluded.cliente_nome,
+                        cliente_cpf = excluded.cliente_cpf,
+                        cliente_cnh = excluded.cliente_cnh,
+                        cliente_endereco = excluded.cliente_endereco,
+                        forma_pagamento = excluded.forma_pagamento,
+                        houve_negociacao = excluded.houve_negociacao,
+                        negociacao_desc = excluded.negociacao_desc,
+                        negociacao_valor = excluded.negociacao_valor,
+                        base_price = excluded.base_price,
+                        final_price = excluded.final_price,
+                        nota_xml_path = excluded.nota_xml_path
+                    """,
+                    (
+                        sale_id,
+                        vehicle_id,
+                        json.dumps(vehicle_snapshot, ensure_ascii=False),
+                        str(sale.get("vendedor") or "").strip(),
+                        str(sale.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")).strip(),
+                        str(sale.get("cliente_nome") or "").strip(),
+                        str(sale.get("cliente_cpf") or "").strip(),
+                        str(sale.get("cliente_cnh") or "").strip(),
+                        str(sale.get("cliente_endereco") or "").strip(),
+                        str(sale.get("forma_pagamento") or "").strip(),
+                        _to_db_bool_int(sale.get("houve_negociacao")),
+                        str(sale.get("negociacao_desc") or "").strip(),
+                        _to_db_float(sale.get("negociacao_valor")),
+                        _to_db_float(sale.get("base_price")),
+                        _to_db_float(sale.get("final_price")),
+                        str(sale.get("nota_xml_path") or "").strip() or None,
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                continue
+
+        connection.commit()
+
+
+def sync_all_json_to_db() -> None:
+    sync_users_to_db(_read_json_array(USERS_FILE))
+    sync_sellers_to_db(_read_json_array(SELLERS_FILE))
+    sync_commissions_to_db(_read_json_array(COMMISSIONS_FILE))
+    sync_seller_goals_to_db(_read_json_array(GOALS_FILE))
+    sync_vehicles_to_db(_read_json_array(VEHICLES_FILE))
+    sync_sales_to_db(_read_json_array(SALES_FILE))
+
+
+def load_vehicles() -> list[dict[str, Any]]:
+    return _read_json_array(VEHICLES_FILE)
+
+
 def save_vehicles(vehicles: list[dict[str, Any]]) -> None:
     with open(VEHICLES_FILE, "w", encoding="utf-8") as file:
         json.dump(vehicles, file, ensure_ascii=False, indent=2)
+    sync_vehicles_to_db(vehicles)
 
 
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "carrofacil-login-seguro")
+    ensure_database_ready()
+    sync_all_json_to_db()
 
     def load_users() -> list[dict]:
         try:
@@ -54,6 +451,7 @@ def create_app() -> Flask:
     def save_users(users: list[dict]) -> None:
         with open(USERS_FILE, "w", encoding="utf-8") as f:
             json.dump(users, f, ensure_ascii=False, indent=2)
+        sync_users_to_db(users)
 
     def load_sellers() -> list[dict]:
         try:
@@ -65,6 +463,7 @@ def create_app() -> Flask:
     def save_sellers(sellers: list[dict]) -> None:
         with open(SELLERS_FILE, "w", encoding="utf-8") as f:
             json.dump(sellers, f, ensure_ascii=False, indent=2)
+        sync_sellers_to_db(sellers)
 
     def load_commissions() -> list[dict]:
         try:
@@ -76,6 +475,7 @@ def create_app() -> Flask:
     def save_commissions(commissions: list[dict]) -> None:
         with open(COMMISSIONS_FILE, "w", encoding="utf-8") as f:
             json.dump(commissions, f, ensure_ascii=False, indent=2)
+        sync_commissions_to_db(commissions)
 
 
     def load_seller_goals() -> list[dict]:
@@ -88,6 +488,7 @@ def create_app() -> Flask:
     def save_seller_goals(goals: list[dict]) -> None:
         with open(GOALS_FILE, "w", encoding="utf-8") as f:
             json.dump(goals, f, ensure_ascii=False, indent=2)
+        sync_seller_goals_to_db(goals)
 
     def get_current_seller() -> dict:
         logged_user = session.get("logged_user")
@@ -712,31 +1113,57 @@ def create_app() -> Flask:
         return render_template("vendas.html", vehicles=vehicles, q=q)
 
     def save_sale(sale: dict) -> None:
-        sales = []
-        try:
-            with open(SALES_FILE, "r", encoding="utf-8") as f:
-                sales = json.load(f)
-        except FileNotFoundError:
-            sales = []
-        sales.append(sale)
+        sales = _read_json_array(SALES_FILE)
+        sale_record = dict(sale)
+        sale_record["nota_xml_path"] = create_nota_xml(sale_record)
+        sales.append(sale_record)
         with open(SALES_FILE, "w", encoding="utf-8") as f:
             json.dump(sales, f, ensure_ascii=False, indent=2)
+        sync_sales_to_db([sale_record])
 
     def load_sales() -> list[dict]:
-        try:
-            with open(SALES_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return []
+        return _read_json_array(SALES_FILE)
+
+    def update_sale_xml_path(sale_id: str, xml_path: str) -> None:
+        if not sale_id or not xml_path:
+            return
+
+        sales = load_sales()
+        updated_sale = None
+
+        for current_sale in sales:
+            if str(current_sale.get("id") or "") == sale_id:
+                current_sale["nota_xml_path"] = xml_path
+                updated_sale = current_sale
+                break
+
+        if updated_sale is None:
+            return
+
+        with open(SALES_FILE, "w", encoding="utf-8") as file:
+            json.dump(sales, file, ensure_ascii=False, indent=2)
+
+        sync_sales_to_db([updated_sale])
+
+    def ensure_sale_xml(sale: dict) -> str:
+        xml_path = str(sale.get("nota_xml_path") or "").strip()
+        if xml_path and os.path.exists(xml_path):
+            return xml_path
+
+        xml_path = create_nota_xml(sale)
+        sale_id = str(sale.get("id") or "").strip()
+        if sale_id:
+            update_sale_xml_path(sale_id, xml_path)
+        return xml_path
+
+    def find_sale_by_id(sale_id: str) -> dict | None:
+        for current_sale in load_sales():
+            if str(current_sale.get("id") or "") == sale_id:
+                return current_sale
+        return None
 
     def _to_float_price(value: str) -> float:
-        try:
-            return float(value.replace("R$", "").replace(" ", "").replace(".", "").replace(",", "."))
-        except Exception:
-            try:
-                return float(value)
-            except Exception:
-                return 0.0
+        return _to_db_float(value)
 
     def _clean_digits(s: str) -> str:
         return ''.join(ch for ch in (s or '') if ch.isdigit())
@@ -835,7 +1262,26 @@ def create_app() -> Flask:
                 break
         if sale is None:
             return redirect(url_for("vendas"))
+        sale["nota_xml_path"] = ensure_sale_xml(sale)
         return render_template("nota.html", sale=sale)
+
+    @app.route("/vendas/nota/<sale_id>/xml", methods=["GET"])
+    def download_nota_xml(sale_id: str):
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        sale = find_sale_by_id(sale_id)
+        if sale is None:
+            return redirect(url_for("vendas"))
+
+        xml_path = ensure_sale_xml(sale)
+        return send_file(
+            xml_path,
+            mimetype="application/xml",
+            as_attachment=True,
+            download_name=f"nota-{sale_id}.xml",
+        )
 
     return app
 
@@ -843,4 +1289,3 @@ def create_app() -> Flask:
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=5000)
-
