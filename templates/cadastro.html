@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
@@ -19,6 +19,7 @@
       .error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
       .required { color: #991b1b; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <div class="container">
@@ -65,7 +66,7 @@
 
         <div class="actions">
           <button type="submit">Salvar cadastro</button>
-          <a href="/">Voltar ao painel</a>
+          <a href="/" class="floating-back-btn">Voltar ao painel</a>
         </div>
       </form>
     </div>
@@ -94,5 +95,8 @@
         }
       })();
     </script>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

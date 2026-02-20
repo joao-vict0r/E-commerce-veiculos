@@ -1,9 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Registro de Cliente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <h1>Registro como cliente</h1>
@@ -17,13 +18,14 @@
       <button type="submit">Enviar</button>
     </form>
     <p><a href="/">Voltar</a></p>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
 <!-- Chat widget: floating button + modal -->
 <div id="chat-widget">
-  <button id="chat-toggle" aria-label="Abrir chat">💬</button>
+  <button id="chat-toggle" aria-label="Abrir chat">Chat</button>
   <div id="chat-modal" role="dialog" aria-hidden="true">
-    <div id="chat-header">Atendimento <button id="chat-close">✖</button></div>
+    <div id="chat-header">Atendimento <button id="chat-close">X</button></div>
     <iframe src="/chat" id="chat-iframe" title="Chat de Ajuda"></iframe>
   </div>
 </div>
@@ -44,3 +46,5 @@
   toggle.addEventListener('click', ()=>{ modal.style.display = modal.style.display==='block' ? 'none' : 'block'; modal.setAttribute('aria-hidden', modal.style.display!=='block'); });
   closeBtn.addEventListener('click', ()=>{ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); });
 </script>
+
+

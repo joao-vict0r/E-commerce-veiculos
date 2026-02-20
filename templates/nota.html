@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
@@ -15,6 +15,7 @@
       .print-btn{display:inline-block;padding:8px 12px;background:#0b6bff;color:#fff;border-radius:8px;text-decoration:none}
       @media print{ .print-btn{display:none} }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <div class="nota">
@@ -76,5 +77,8 @@
           html2pdf().set(opt).from(element).save();
         });
       </script>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
@@ -28,7 +28,7 @@
         margin: 0 0 8px;
       }
       .header h1::after {
-        content: " 💰";
+        content: " $";
       }
       .header p {
         margin: 0;
@@ -175,6 +175,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <div class="container">
@@ -184,7 +185,7 @@
           <p>Controle os veículos disponíveis e marque os vendidos.</p>
           <p>Usuário logado: <strong>{{ user.name or user.username }}</strong> · <a href="/logout">Sair</a></p>
         </div>
-        <a class="btn btn-dark" href="/">Voltar ao painel</a>
+        <a class="btn btn-dark floating-back-btn" href="/">Voltar ao painel</a>
       </div>
 
       <form method="get" action="/vendas" class="search-form">
@@ -252,5 +253,8 @@
       <p>Não há veículos cadastrados. Acesse a área de cadastro para incluir o primeiro veículo.</p>
       {% endif %}
     </div>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

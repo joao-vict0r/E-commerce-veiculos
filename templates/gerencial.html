@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
@@ -23,6 +23,22 @@
       .sub { margin:8px 0 0; color:var(--muted); }
       .sub a, .to-panel { color:var(--blue); text-decoration:none; font-weight:700; }
       .to-panel { margin-top:12px; font-size:22px; }
+      .to-panel.floating-back-btn {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 10900;
+        margin: 0;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 10px;
+        background: var(--blue);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 12px 24px rgba(11, 107, 255, 0.28);
+      }
 
       .tabs { margin: 18px 0 14px; display:flex; gap:10px; }
       .tab { padding:10px 14px; border-radius:10px; border:1px solid #b8c2d0; text-decoration:none; font-weight:700; color:#334155; background:#e5eaf1; }
@@ -67,7 +83,17 @@
         .report-grid { grid-template-columns:1fr 1fr; }
         .filter-form { grid-template-columns:1fr; }
       }
+      @media (max-width: 480px){
+        .to-panel.floating-back-btn {
+          right: 12px;
+          bottom: 12px;
+          min-height: 40px;
+          padding: 0 12px;
+          font-size: 18px;
+        }
+      }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <main class="shell">
@@ -76,12 +102,12 @@
           <h1>Tela Gerencial</h1>
           <p class="sub">Usuário logado: <strong>{{ user.name or user.username }}</strong> - <a href="/logout">Sair</a></p>
         </div>
-        <a class="to-panel" href="/">Voltar ao painel</a>
+        <a class="to-panel floating-back-btn" href="/">Voltar ao painel</a>
       </div>
 
       <div class="tabs">
         <a class="tab {% if active_tab != 'relatorios' %}active{% endif %}" href="/gerencial?tab=gestao">Gestão</a>
-        <a class="tab {% if active_tab == 'relatorios' %}active{% endif %}" href="/gerencial?tab=relatorios">Relatórios 📚</a>
+        <a class="tab {% if active_tab == 'relatorios' %}active{% endif %}" href="/gerencial?tab=relatorios">Relatórios </a>
       </div>
 
       {% if success %}<div class="msg-ok">{{ success }}</div>{% endif %}
@@ -89,7 +115,7 @@
 
       {% if active_tab == 'relatorios' %}
       <section class="report-card">
-        <h2 style="margin-top:0">Emitir relatórios 📚</h2>
+        <h2 style="margin-top:0">Emitir relatórios </h2>
         <form method="get" action="/gerencial" class="filter-form">
           <input type="hidden" name="tab" value="relatorios">
           <label>Data inicial
@@ -114,7 +140,7 @@
       </section>
 
       <section class="report-card">
-        <h3 style="margin-top:0">Relatório de meta de vendedores 📚</h3>
+        <h3 style="margin-top:0">Relatório de meta de vendedores </h3>
         <table>
           <thead>
             <tr>
@@ -156,7 +182,7 @@
       {% else %}
       <section class="layout">
         <article class="card">
-          <h2 class="card-title">Cadastrar Vendedor <span class="chev">⌄</span></h2>
+          <h2 class="card-title">Cadastrar Vendedor <span class="chev"></span></h2>
           <form method="post" action="/gerencial">
             <input type="hidden" name="action" value="seller">
             <input type="hidden" name="active_tab" value="gestao">
@@ -171,7 +197,7 @@
         </article>
 
         <article class="card">
-          <h2 class="card-title">Cadastrar Comissão <span class="chev">⌄</span></h2>
+          <h2 class="card-title">Cadastrar Comissão <span class="chev"></span></h2>
           <form method="post" action="/gerencial">
             <input type="hidden" name="action" value="commission">
             <input type="hidden" name="active_tab" value="gestao">
@@ -233,5 +259,8 @@
       </section>
       {% endif %}
     </main>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

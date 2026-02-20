@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
@@ -25,6 +25,7 @@
       .disponivel { background: #dcfce7; color: #166534; }
       .vendido { background: #fee2e2; color: #991b1b; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <header>
@@ -111,5 +112,8 @@
         {% endif %}
       </section>
     </main>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

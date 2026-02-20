@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Chat — Bot de Ajuda</title>
+    <title>Chat - Bot de Ajuda</title>
     <style>
       :root{
         --blue-600:#0b6bff;
@@ -35,9 +35,10 @@
       /* compact layout */
       #controls{display:flex;flex-direction:column}
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
-    <h1>Chat — Bot de Ajuda</h1>
+    <h1>Chat - Bot de Ajuda</h1>
     <div id="messages" aria-live="polite"></div>
     <div id="quickReplies" style="margin:8px 0"></div>
 
@@ -114,7 +115,7 @@
 
       // initial bot greeting shown when chat iframe loads (with inline buttons)
       window.addEventListener('DOMContentLoaded', ()=>{
-        const welcome = 'Olá — para poder ajudar, poderia me informar seu e-mail ou login de acesso? Caso não tenha, deseja que nossa equipe entre em contato para fornecer acesso e permitir que você anuncie veículos à venda?';
+        const welcome = 'Olá - para poder ajudar, poderia me informar seu e-mail ou login de acesso? Caso não tenha, deseja que nossa equipe entre em contato para fornecer acesso e permitir que você anuncie veículos à venda?';
         addWithButtons(welcome, ['Tenho login','Quero contato do comercial'], 'bot');
         const idInput = document.getElementById('identifier');
         if(idInput){ idInput.focus(); }
@@ -185,5 +186,8 @@
         if(b.textContent==='Quero contato do comercial') b.onclick=()=>{ document.getElementById('leadBox').style.display='block'; };
       });
     </script>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
+
+

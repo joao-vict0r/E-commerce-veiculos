@@ -1,20 +1,24 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Menu — Bot de Ajuda</title>
+    <title>Menu - Bot de Ajuda</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <h1>Olá {{ user.name or user.username }}</h1>
     <p>Escolha uma opção:</p>
     <ul>
-      <li><strong>Suporte</strong> — <em>Registrado: equipe de suporte será notificada</em></li>
-      <li><strong>Comercial</strong> — <em>Equipe comercial entrará em contato</em></li>
-      <li><strong>Financeiro</strong> — <em>Encaminhado ao financeiro</em></li>
+      <li><strong>Suporte</strong> - <em>Registrado: equipe de suporte será notificada</em></li>
+      <li><strong>Comercial</strong> - <em>Equipe comercial entrará em contato</em></li>
+      <li><strong>Financeiro</strong> - <em>Encaminhado ao financeiro</em></li>
     </ul>
-    <p>Este é um protótipo — ações reais não são executadas.</p>
+    <p>Este é um protótipo - ações reais não são executadas.</p>
     <p><a href="/">Voltar</a></p>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
 <!-- Chat removed: widget and iframe deleted intentionally -->
+
+
