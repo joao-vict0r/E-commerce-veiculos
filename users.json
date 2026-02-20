@@ -2,8 +2,8 @@
   {
     "id": 1,
     "username": "joao",
+    "name": "Joao Silva",
     "email": "joao@example.com",
-    "name": "João Silva",
     "password": "123456",
     "is_manager": true
   },
@@ -11,6 +11,7 @@
     "id": 2,
     "username": "ygorM",
     "name": "Ygor Melo",
+    "email": "",
     "password": "123456",
     "is_manager": false
   }

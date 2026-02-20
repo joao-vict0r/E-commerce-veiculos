@@ -159,6 +159,12 @@ body.dark-theme #chat-modal {
   border-color: #334155 !important;
 }
 
+body.dark-theme .cards .card {
+  background: #1f2937 !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35) !important;
+}
+
 body.dark-theme table {
   background: #111827 !important;
   color: #e2e8f0 !important;
