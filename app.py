@@ -13,6 +13,7 @@ from flask import Flask, redirect, render_template, request, send_file, session,
 DATA_DIR = os.path.dirname(__file__)
 VEHICLES_FILE = os.path.join(DATA_DIR, "vehicles.json")
 SALES_FILE = os.path.join(DATA_DIR, "sales.json")
+RENTALS_FILE = os.path.join(DATA_DIR, "rentals.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 SELLERS_FILE = os.path.join(DATA_DIR, "sellers.json")
 COMMISSIONS_FILE = os.path.join(DATA_DIR, "commissions.json")
@@ -121,6 +122,13 @@ def ensure_database_ready() -> None:
         }
         if "nota_xml_path" not in sales_columns:
             connection.execute("ALTER TABLE sales ADD COLUMN nota_xml_path TEXT")
+
+        vehicles_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(vehicles)").fetchall()
+        }
+        if "diaria_aluguel" not in vehicles_columns:
+            connection.execute("ALTER TABLE vehicles ADD COLUMN diaria_aluguel REAL NOT NULL DEFAULT 0")
 
         connection.commit()
 
@@ -274,8 +282,8 @@ def sync_vehicles_to_db(vehicles: list[dict[str, Any]]) -> None:
                 """
                 INSERT INTO vehicles (
                     id, marca, modelo, cor, ano, renavam, placa,
-                    ipva_vencimento, preco, km, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ipva_vencimento, preco, km, status, diaria_aluguel
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     marca = excluded.marca,
                     modelo = excluded.modelo,
@@ -286,7 +294,8 @@ def sync_vehicles_to_db(vehicles: list[dict[str, Any]]) -> None:
                     ipva_vencimento = excluded.ipva_vencimento,
                     preco = excluded.preco,
                     km = excluded.km,
-                    status = excluded.status
+                    status = excluded.status,
+                    diaria_aluguel = excluded.diaria_aluguel
                 """,
                 (
                     vehicle_id,
@@ -300,6 +309,7 @@ def sync_vehicles_to_db(vehicles: list[dict[str, Any]]) -> None:
                     _to_db_float(vehicle.get("preco")),
                     str(vehicle.get("km") or "").strip() or None,
                     str(vehicle.get("status") or "disponivel").strip(),
+                    _to_db_float(vehicle.get("diaria_aluguel")),
                 ),
             )
         connection.commit()
@@ -415,6 +425,80 @@ def sync_sales_to_db(sales: list[dict[str, Any]]) -> None:
         connection.commit()
 
 
+def sync_rentals_to_db(rentals: list[dict[str, Any]]) -> None:
+    if not rentals:
+        return
+
+    ensure_database_ready()
+    with get_db_connection() as connection:
+        for rental in rentals:
+            rental_id = str(rental.get("id") or "").strip()
+            vehicle_id = str(rental.get("vehicle_id") or "").strip()
+            if not rental_id or not vehicle_id:
+                continue
+
+            vehicle_snapshot = rental.get("vehicle") if isinstance(rental.get("vehicle"), dict) else {}
+
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO rentals (
+                        id, vehicle_id, vehicle_snapshot, vendedor, created_at,
+                        cliente_nome, cliente_cpf, cliente_cnh, cliente_endereco, cliente_telefone,
+                        periodo_inicio, periodo_fim, quantidade_diarias, valor_diaria,
+                        valor_base, retirada_em_casa, valor_retirada, forma_pagamento,
+                        valor_total, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        vehicle_id = excluded.vehicle_id,
+                        vehicle_snapshot = excluded.vehicle_snapshot,
+                        vendedor = excluded.vendedor,
+                        created_at = excluded.created_at,
+                        cliente_nome = excluded.cliente_nome,
+                        cliente_cpf = excluded.cliente_cpf,
+                        cliente_cnh = excluded.cliente_cnh,
+                        cliente_endereco = excluded.cliente_endereco,
+                        cliente_telefone = excluded.cliente_telefone,
+                        periodo_inicio = excluded.periodo_inicio,
+                        periodo_fim = excluded.periodo_fim,
+                        quantidade_diarias = excluded.quantidade_diarias,
+                        valor_diaria = excluded.valor_diaria,
+                        valor_base = excluded.valor_base,
+                        retirada_em_casa = excluded.retirada_em_casa,
+                        valor_retirada = excluded.valor_retirada,
+                        forma_pagamento = excluded.forma_pagamento,
+                        valor_total = excluded.valor_total,
+                        status = excluded.status
+                    """,
+                    (
+                        rental_id,
+                        vehicle_id,
+                        json.dumps(vehicle_snapshot, ensure_ascii=False),
+                        str(rental.get("vendedor") or "").strip(),
+                        str(rental.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")).strip(),
+                        str(rental.get("cliente_nome") or "").strip(),
+                        str(rental.get("cliente_cpf") or "").strip(),
+                        str(rental.get("cliente_cnh") or "").strip(),
+                        str(rental.get("cliente_endereco") or "").strip(),
+                        str(rental.get("cliente_telefone") or "").strip(),
+                        str(rental.get("periodo_inicio") or "").strip(),
+                        str(rental.get("periodo_fim") or "").strip(),
+                        int(float(rental.get("quantidade_diarias") or 0)),
+                        _to_db_float(rental.get("valor_diaria")),
+                        _to_db_float(rental.get("valor_base")),
+                        _to_db_bool_int(rental.get("retirada_em_casa")),
+                        _to_db_float(rental.get("valor_retirada")),
+                        str(rental.get("forma_pagamento") or "").strip(),
+                        _to_db_float(rental.get("valor_total")),
+                        str(rental.get("status") or "ativo").strip(),
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                continue
+
+        connection.commit()
+
+
 def sync_all_json_to_db() -> None:
     sync_users_to_db(_read_json_array(USERS_FILE))
     sync_sellers_to_db(_read_json_array(SELLERS_FILE))
@@ -422,6 +506,7 @@ def sync_all_json_to_db() -> None:
     sync_seller_goals_to_db(_read_json_array(GOALS_FILE))
     sync_vehicles_to_db(_read_json_array(VEHICLES_FILE))
     sync_sales_to_db(_read_json_array(SALES_FILE))
+    sync_rentals_to_db(_read_json_array(RENTALS_FILE))
 
 
 def load_vehicles() -> list[dict[str, Any]]:
@@ -945,6 +1030,34 @@ def create_app() -> Flask:
                         save_commissions(commissions)
                         success = "Comissão cadastrada com sucesso."
 
+            elif action == "rental_price":
+                vehicle_id = request.form.get("rental_vehicle_id", "").strip()
+                daily_raw = request.form.get("rental_daily_price", "").strip().replace(",", ".")
+                if not vehicle_id or not daily_raw:
+                    error = "Informe o veiculo e o valor da diaria."
+                else:
+                    try:
+                        daily_value = float(daily_raw)
+                    except ValueError:
+                        daily_value = -1
+
+                    if daily_value < 0:
+                        error = "Valor da diaria invalido."
+                    else:
+                        vehicles = load_vehicles()
+                        found = False
+                        for vehicle in vehicles:
+                            if str(vehicle.get("id") or "") == vehicle_id:
+                                vehicle["diaria_aluguel"] = f"{daily_value:.2f}"
+                                found = True
+                                break
+
+                        if not found:
+                            error = "Veiculo nao encontrado."
+                        else:
+                            save_vehicles(vehicles)
+                            success = "Diaria de aluguel atualizada com sucesso."
+
             elif action == "access":
                 username = request.form.get("new_username", "").strip()
                 full_name = request.form.get("new_name", "").strip()
@@ -1009,6 +1122,7 @@ def create_app() -> Flask:
             commissions_registry=load_commissions(),
             users_registry=load_users(),
             goals_registry=load_seller_goals(),
+            vehicles_registry=load_vehicles(),
             reports=reports,
             active_tab=active_tab,
             error=error,
@@ -1067,6 +1181,8 @@ def create_app() -> Flask:
                     created=False,
                     error=f"Preencha os campos obrigatórios: {', '.join(missing)}.",
                     form_data=form_data,
+                    updated=False,
+                    vehicles_registry=list(reversed(load_vehicles())),
                 )
 
             vehicle = {"id": str(uuid4())[:8], **form_data, "status": "disponivel"}
@@ -1076,7 +1192,69 @@ def create_app() -> Flask:
             return redirect(url_for("cadastro", created="1"))
 
         created = request.args.get("created") == "1"
-        return render_template("cadastro.html", created=created, error=None, form_data={})
+        updated = request.args.get("updated") == "1"
+        return render_template(
+            "cadastro.html",
+            created=created,
+            updated=updated,
+            error=None,
+            form_data={},
+            vehicles_registry=list(reversed(load_vehicles())),
+        )
+
+    @app.route("/cadastro/<vehicle_id>/editar", methods=["GET", "POST"])
+    def editar_cadastro(vehicle_id: str):
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        vehicles = load_vehicles()
+        vehicle_index = next((index for index, item in enumerate(vehicles) if item.get("id") == vehicle_id), None)
+        if vehicle_index is None:
+            return redirect(url_for("cadastro"))
+
+        current_vehicle = vehicles[vehicle_index]
+
+        if request.method == "POST":
+            form_data = {
+                "marca": request.form.get("marca", "").strip(),
+                "modelo": request.form.get("modelo", "").strip(),
+                "cor": request.form.get("cor", "").strip(),
+                "ano": request.form.get("ano", "").strip(),
+                "renavam": request.form.get("renavam", "").strip(),
+                "placa": request.form.get("placa", "").strip().upper(),
+                "ipva_vencimento": request.form.get("ipva_vencimento", "").strip(),
+                "preco": request.form.get("preco", "").strip(),
+                "km": request.form.get("km", "").strip(),
+            }
+
+            if form_data.get("preco"):
+                try:
+                    form_data["preco"] = f"{_to_float_price(form_data.get('preco', '0')):.2f}"
+                except Exception:
+                    form_data["preco"] = form_data.get("preco")
+
+            missing = [label for key, label in REQUIRED_FIELDS.items() if not form_data.get(key)]
+            if missing:
+                return render_template(
+                    "editar_veiculo.html",
+                    error=f"Preencha os campos obrigatorios: {', '.join(missing)}.",
+                    form_data=form_data,
+                    vehicle_id=vehicle_id,
+                )
+
+            updated_vehicle = dict(current_vehicle)
+            updated_vehicle.update(form_data)
+            vehicles[vehicle_index] = updated_vehicle
+            save_vehicles(vehicles)
+            return redirect(url_for("cadastro", updated="1"))
+
+        return render_template(
+            "editar_veiculo.html",
+            error=None,
+            form_data=current_vehicle,
+            vehicle_id=vehicle_id,
+        )
 
     @app.route("/vendas", methods=["GET"])
     def vendas():
@@ -1123,6 +1301,17 @@ def create_app() -> Flask:
 
     def load_sales() -> list[dict]:
         return _read_json_array(SALES_FILE)
+
+    def load_rentals() -> list[dict]:
+        return _read_json_array(RENTALS_FILE)
+
+    def save_rental(rental: dict) -> None:
+        rentals = load_rentals()
+        rental_record = dict(rental)
+        rentals.append(rental_record)
+        with open(RENTALS_FILE, "w", encoding="utf-8") as file:
+            json.dump(rentals, file, ensure_ascii=False, indent=2)
+        sync_rentals_to_db([rental_record])
 
     def update_sale_xml_path(sale_id: str, xml_path: str) -> None:
         if not sale_id or not xml_path:
@@ -1183,6 +1372,222 @@ def create_app() -> Flask:
         d1 = calc(cpf[:9])
         d2 = calc(cpf[:10])
         return d1 == int(cpf[9]) and d2 == int(cpf[10])
+
+    def parse_rental_date(value: str) -> datetime | None:
+        try:
+            return datetime.strptime((value or "").strip(), "%Y-%m-%d")
+        except ValueError:
+            return None
+
+    def rental_overlaps_period(rental: dict, start_dt: datetime, end_dt: datetime) -> bool:
+        status = str(rental.get("status") or "ativo").strip().lower()
+        if status != "ativo":
+            return False
+
+        rental_start = parse_rental_date(str(rental.get("periodo_inicio") or ""))
+        rental_end = parse_rental_date(str(rental.get("periodo_fim") or ""))
+        if rental_start is None or rental_end is None:
+            return False
+
+        return rental_start <= end_dt and start_dt <= rental_end
+
+    def get_vehicle_rental_overlap(vehicle_id: str, start_dt: datetime, end_dt: datetime) -> dict | None:
+        for rental in load_rentals():
+            if str(rental.get("vehicle_id") or "") != vehicle_id:
+                continue
+            if rental_overlaps_period(rental, start_dt, end_dt):
+                return rental
+        return None
+
+    def vehicle_has_rental_overlap(vehicle_id: str, start_dt: datetime, end_dt: datetime) -> bool:
+        return get_vehicle_rental_overlap(vehicle_id, start_dt, end_dt) is not None
+
+    def vehicle_is_rented_today(vehicle_id: str) -> bool:
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return vehicle_has_rental_overlap(vehicle_id, today, today)
+
+    def list_available_vehicles_for_rental() -> list[dict]:
+        available: list[dict] = []
+        for vehicle in load_vehicles():
+            if str(vehicle.get("status") or "") != "disponivel":
+                continue
+            vehicle_id = str(vehicle.get("id") or "")
+            if vehicle_id and vehicle_is_rented_today(vehicle_id):
+                continue
+            available.append(vehicle)
+        return available
+
+    @app.route("/aluguel", methods=["GET"])
+    def aluguel():
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        q = (request.args.get("q") or "").strip()
+        vehicles = [dict(vehicle) for vehicle in list_available_vehicles_for_rental()]
+        for vehicle in vehicles:
+            daily_value = _to_float_price(vehicle.get("diaria_aluguel", "0"))
+            vehicle["diaria_aluguel"] = f"{daily_value:.2f}"
+
+        if q:
+            query = q.lower()
+
+            def matches(vehicle: dict) -> bool:
+                text = " ".join([str(vehicle.get(key) or "") for key in ("marca", "modelo", "placa", "renavam")])
+                return query in text.lower()
+
+            vehicles = [vehicle for vehicle in vehicles if matches(vehicle)]
+
+        rentals = load_rentals()
+        recent_rentals = list(reversed(rentals[-10:]))
+
+        return render_template(
+            "aluguel.html",
+            vehicles=vehicles,
+            q=q,
+            created=request.args.get("created") == "1",
+            recent_rentals=recent_rentals,
+        )
+
+    @app.route("/aluguel/<vehicle_id>/novo", methods=["GET", "POST"])
+    def novo_aluguel(vehicle_id: str):
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        vehicles = load_vehicles()
+        vehicle = next((item for item in vehicles if item.get("id") == vehicle_id), None)
+        if vehicle is None or str(vehicle.get("status") or "") != "disponivel":
+            return redirect(url_for("aluguel"))
+
+        daily_value = _to_float_price(vehicle.get("diaria_aluguel", "0"))
+        vehicle_view = dict(vehicle)
+        vehicle_view["diaria_aluguel"] = f"{daily_value:.2f}"
+
+        if request.method == "POST":
+            form_data = request.form.to_dict()
+            cliente_nome = (request.form.get("cliente_nome") or "").strip()
+            cliente_cpf = (request.form.get("cliente_cpf") or "").strip()
+            cliente_cnh = (request.form.get("cliente_cnh") or "").strip()
+            cliente_endereco = (request.form.get("cliente_endereco") or "").strip()
+            cliente_telefone = (request.form.get("cliente_telefone") or "").strip()
+            periodo_inicio_raw = (request.form.get("periodo_inicio") or "").strip()
+            periodo_fim_raw = (request.form.get("periodo_fim") or "").strip()
+            retirada_em_casa = (request.form.get("retirada_em_casa") or "no") == "yes"
+            valor_retirada_raw = (request.form.get("valor_retirada") or "").strip()
+            forma_pagamento = (request.form.get("forma_pagamento") or "").strip()
+
+            required = [
+                cliente_nome,
+                cliente_cpf,
+                cliente_cnh,
+                cliente_endereco,
+                cliente_telefone,
+                periodo_inicio_raw,
+                periodo_fim_raw,
+                forma_pagamento,
+            ]
+            if any(not value for value in required):
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Preencha todos os campos obrigatorios do aluguel.",
+                    form_data=form_data,
+                )
+
+            if not validate_cpf(cliente_cpf):
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="CPF invalido.",
+                    form_data=form_data,
+                )
+
+            if daily_value <= 0:
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Defina a diaria na tela gerencial antes de alugar.",
+                    form_data=form_data,
+                )
+
+            periodo_inicio = parse_rental_date(periodo_inicio_raw)
+            periodo_fim = parse_rental_date(periodo_fim_raw)
+            if periodo_inicio is None or periodo_fim is None:
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Periodo de aluguel invalido.",
+                    form_data=form_data,
+                )
+
+            if periodo_fim < periodo_inicio:
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Data final nao pode ser menor que a data inicial.",
+                    form_data=form_data,
+                )
+
+            conflicting_rental = get_vehicle_rental_overlap(vehicle_id, periodo_inicio, periodo_fim)
+            if conflicting_rental:
+                conflict_start = str(conflicting_rental.get("periodo_inicio") or "").strip() or "data nao informada"
+                conflict_end = str(conflicting_rental.get("periodo_fim") or "").strip() or "data nao informada"
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error=f"Essa data ja esta selecionada para esse carro ({conflict_start} ate {conflict_end}).",
+                    form_data=form_data,
+                )
+
+            if retirada_em_casa and not valor_retirada_raw:
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Informe o valor de retirada em casa.",
+                    form_data=form_data,
+                )
+
+            valor_retirada = _to_float_price(valor_retirada_raw) if retirada_em_casa else 0.0
+            if valor_retirada < 0:
+                return render_template(
+                    "alugar.html",
+                    vehicle=vehicle_view,
+                    error="Valor de retirada invalido.",
+                    form_data=form_data,
+                )
+
+            quantidade_diarias = (periodo_fim - periodo_inicio).days + 1
+            valor_base = quantidade_diarias * daily_value
+            valor_total = valor_base + valor_retirada
+
+            current_user = get_current_seller()
+            rental = {
+                "id": str(uuid4())[:8],
+                "vehicle_id": vehicle_id,
+                "vehicle": vehicle_view,
+                "vendedor": current_user.get("name") or current_user.get("username") or "Sem vendedor",
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "cliente_nome": cliente_nome,
+                "cliente_cpf": cliente_cpf,
+                "cliente_cnh": cliente_cnh,
+                "cliente_endereco": cliente_endereco,
+                "cliente_telefone": cliente_telefone,
+                "periodo_inicio": periodo_inicio_raw,
+                "periodo_fim": periodo_fim_raw,
+                "quantidade_diarias": quantidade_diarias,
+                "valor_diaria": daily_value,
+                "valor_base": valor_base,
+                "retirada_em_casa": retirada_em_casa,
+                "valor_retirada": valor_retirada,
+                "forma_pagamento": forma_pagamento,
+                "valor_total": valor_total,
+                "status": "ativo",
+            }
+            save_rental(rental)
+            return redirect(url_for("aluguel", created="1"))
+
+        return render_template("alugar.html", vehicle=vehicle_view, error=None, form_data={})
 
     @app.route("/vendas/<vehicle_id>/vender", methods=["GET", "POST"])
     def vender(vehicle_id: str):

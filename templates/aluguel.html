@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Area de Aluguel</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
+      .container { width: 100%; margin: 0; padding: 24px clamp(14px, 2.6vw, 36px) 24px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+      .header h1 { margin: 0 0 8px; }
+      .header p { margin: 0; color: #475569; }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 44px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-dark { background: #1f2937; color: #ffffff; }
+      .search-form { margin-bottom: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .search-input {
+        flex: 1 1 380px;
+        min-width: 260px;
+        height: 44px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding: 0 12px;
+        font-size: 16px;
+      }
+      .link-clear { color: #6b21a8; text-decoration: none; font-weight: 600; }
+      .link-clear:hover { text-decoration: underline; }
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: break-word;
+      }
+      th { background: #e2e8f0; white-space: nowrap; }
+      tbody tr:last-child td { border-bottom: 0; }
+      .action-group { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 132px; }
+      .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        border-radius: 10px;
+        border: 0;
+        text-decoration: none;
+        font-weight: 600;
+        color: #ffffff;
+        background: #0b6bff;
+        padding: 0 10px;
+        white-space: nowrap;
+        font-size: 15px;
+      }
+      .action-btn.disabled { background: #9ca3af; cursor: not-allowed; }
+      .msg-ok {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #86efac;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+      }
+      .warn { color: #b45309; font-weight: 700; }
+      .section-title { margin: 22px 0 10px; }
+      @media (max-width: 1100px) {
+        table { min-width: 980px; table-layout: auto; }
+        th, td { white-space: nowrap; word-break: normal; }
+      }
+      @media (max-width: 860px) {
+        .container { padding: 18px 12px; }
+        .header { flex-direction: column; align-items: flex-start; }
+        .search-input { min-width: 100%; }
+      }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Area de Aluguel</h1>
+          <p>Cadastre novos alugueis com cliente, periodo e pagamento.</p>
+          <p>Usuario logado: <strong>{{ user.name or user.username }}</strong> - <a href="/logout">Sair</a></p>
+        </div>
+        <a class="btn btn-dark floating-back-btn" href="/">Voltar ao painel</a>
+      </div>
+
+      {% if created %}
+      <div class="msg-ok">Aluguel cadastrado com sucesso.</div>
+      {% endif %}
+
+      <form method="get" action="/aluguel" class="search-form">
+        <input
+          class="search-input"
+          name="q"
+          placeholder="Pesquisar por placa ou descricao"
+          value="{{ q or '' }}"
+        >
+        <button type="submit" class="btn btn-dark">Pesquisar</button>
+        <a href="/aluguel" class="link-clear">Limpar</a>
+      </form>
+
+      {% if vehicles %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Veiculo</th>
+              <th>Ano</th>
+              <th>Placa</th>
+              <th>Renavam</th>
+              <th>KM</th>
+              <th>Diaria</th>
+              <th>Acao</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+              <td>{{ vehicle.id }}</td>
+              <td>{{ vehicle.marca }} {{ vehicle.modelo }}</td>
+              <td>{{ vehicle.ano }}</td>
+              <td>{{ (vehicle.placa or '-')|upper }}</td>
+              <td>{{ vehicle.renavam or '-' }}</td>
+              <td>{{ vehicle.km or '-' }}</td>
+              <td>
+                R$ {{ vehicle.diaria_aluguel }}
+                {% if (vehicle.diaria_aluguel|float) <= 0 %}
+                  <span class="warn">(definir diaria)</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="action-group">
+                  {% if (vehicle.diaria_aluguel|float) > 0 %}
+                    <a href="/aluguel/{{ vehicle.id }}/novo" class="action-btn">Alugar</a>
+                  {% else %}
+                    <span class="action-btn disabled">Sem diaria</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p>Nenhum carro disponivel para aluguel no momento.</p>
+      {% endif %}
+
+      <h2 class="section-title">Ultimos alugueis cadastrados</h2>
+      {% if recent_rentals %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Cliente</th>
+              <th>Carro</th>
+              <th>Periodo</th>
+              <th>Diarias</th>
+              <th>Total</th>
+              <th>Pagamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rental in recent_rentals %}
+            <tr>
+              <td>{{ rental.created_at or '-' }}</td>
+              <td>{{ rental.cliente_nome or '-' }}</td>
+              <td>{{ rental.vehicle.marca }} {{ rental.vehicle.modelo }} ({{ (rental.vehicle.placa or '-')|upper }})</td>
+              <td>{{ rental.periodo_inicio }} ate {{ rental.periodo_fim }}</td>
+              <td>{{ rental.quantidade_diarias }}</td>
+              <td>R$ {{ '%.2f'|format((rental.valor_total or 0)|float) }}</td>
+              <td>{{ rental.forma_pagamento or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p>Ainda nao ha alugueis cadastrados.</p>
+      {% endif %}
+    </div>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+  </body>
+</html>

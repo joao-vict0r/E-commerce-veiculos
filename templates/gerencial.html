@@ -237,6 +237,51 @@
       </section>
 
       <section class="report-card">
+        <h2 style="margin-top:0">Configurar diaria de aluguel</h2>
+        <form method="post" action="/gerencial" class="filter-form">
+          <input type="hidden" name="action" value="rental_price">
+          <input type="hidden" name="active_tab" value="gestao">
+          <label>Carro
+            <select name="rental_vehicle_id" required>
+              <option value="">-- selecione --</option>
+              {% for vehicle in vehicles_registry %}
+              <option value="{{ vehicle.id }}">
+                {{ vehicle.marca }} {{ vehicle.modelo }} - {{ (vehicle.placa or '-')|upper }}
+              </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Valor da diaria (R$)
+            <input name="rental_daily_price" type="number" min="0" step="0.01" required>
+          </label>
+          <button class="btn" type="submit">Salvar diaria</button>
+        </form>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Carro</th>
+              <th>Placa</th>
+              <th>Status</th>
+              <th>Diaria atual</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vehicle in vehicles_registry %}
+            <tr>
+              <td>{{ vehicle.marca }} {{ vehicle.modelo }}</td>
+              <td>{{ (vehicle.placa or '-')|upper }}</td>
+              <td>{{ vehicle.status }}</td>
+              <td>R$ {{ '%.2f'|format((vehicle.diaria_aluguel or 0)|float) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Nenhum carro cadastrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="report-card">
         <h2 style="margin-top:0">Criar Acesso</h2>
         <form method="post" action="/gerencial" class="filter-form">
           <input type="hidden" name="action" value="access">

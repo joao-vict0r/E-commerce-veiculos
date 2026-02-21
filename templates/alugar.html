@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Novo Aluguel</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f1f5f9; }
+      .container { max-width: 860px; margin: 24px auto; padding: 0 16px; }
+      .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06); }
+      .small { font-size: 13px; color: #374151; }
+      label { display: block; margin-top: 8px; font-weight: 600; }
+      input, select { width: 100%; padding: 8px; margin-top: 6px; border-radius: 6px; border: 1px solid #e5e7eb; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .col { flex: 1; min-width: 240px; }
+      .actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .btn-link, button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 0;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button { background: #0b6bff; color: #fff; }
+      .btn-link { background: #1f2937; color: #fff; }
+      .error { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+      .summary {
+        margin-top: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .summary p { margin: 8px 0; }
+      #retiradaFeeWrap { display: none; }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <div>
+          <h1 style="margin:0">Novo Aluguel</h1>
+          <p class="small">
+            Veiculo: {{ vehicle.marca }} {{ vehicle.modelo }} -
+            Placa: {{ (vehicle.placa or '-')|upper }} -
+            Diaria: R$ <strong id="dailyValueText">{{ vehicle.diaria_aluguel }}</strong>
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <a href="/logout" class="btn-link" style="background:#64748b;">Sair</a>
+          <a href="/aluguel" class="btn-link floating-back-btn">Voltar</a>
+        </div>
+      </div>
+
+      <div class="card">
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/aluguel/{{ vehicle.id }}/novo" id="aluguelForm">
+          <h3>Dados do cliente</h3>
+          <label>Nome completo</label>
+          <input name="cliente_nome" required value="{{ form_data.cliente_nome if form_data else '' }}">
+
+          <div class="row">
+            <div class="col">
+              <label>CPF</label>
+              <input name="cliente_cpf" id="cliente_cpf" required value="{{ form_data.cliente_cpf if form_data else '' }}">
+            </div>
+            <div class="col">
+              <label>Numero da CNH</label>
+              <input name="cliente_cnh" required value="{{ form_data.cliente_cnh if form_data else '' }}">
+            </div>
+          </div>
+
+          <label>Endereco</label>
+          <input name="cliente_endereco" required value="{{ form_data.cliente_endereco if form_data else '' }}">
+
+          <label>Telefone</label>
+          <input name="cliente_telefone" required value="{{ form_data.cliente_telefone if form_data else '' }}">
+
+          <h3>Periodo do aluguel</h3>
+          <div class="row">
+            <div class="col">
+              <label>Data inicial</label>
+              <input type="date" name="periodo_inicio" id="periodo_inicio" required value="{{ form_data.periodo_inicio if form_data else '' }}">
+            </div>
+            <div class="col">
+              <label>Data final</label>
+              <input type="date" name="periodo_fim" id="periodo_fim" required value="{{ form_data.periodo_fim if form_data else '' }}">
+            </div>
+          </div>
+
+          <h3>Retirada e pagamento</h3>
+          <label>Retirar na casa do cliente?</label>
+          <select name="retirada_em_casa" id="retirada_em_casa">
+            <option value="no" {% if not form_data or form_data.retirada_em_casa != 'yes' %}selected{% endif %}>Nao</option>
+            <option value="yes" {% if form_data and form_data.retirada_em_casa == 'yes' %}selected{% endif %}>Sim</option>
+          </select>
+
+          <div id="retiradaFeeWrap">
+            <label>Valor da retirada em casa (R$)</label>
+            <input name="valor_retirada" id="valor_retirada" placeholder="0.00" value="{{ form_data.valor_retirada if form_data else '' }}">
+          </div>
+
+          <label>Forma de pagamento</label>
+          <select name="forma_pagamento" required>
+            <option value="">-- selecione --</option>
+            <option value="dinheiro" {% if form_data and form_data.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+            <option value="pix" {% if form_data and form_data.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
+            <option value="cartao_credito" {% if form_data and form_data.forma_pagamento == 'cartao_credito' %}selected{% endif %}>Cartao credito</option>
+            <option value="cartao_debito" {% if form_data and form_data.forma_pagamento == 'cartao_debito' %}selected{% endif %}>Cartao debito</option>
+            <option value="boleto" {% if form_data and form_data.forma_pagamento == 'boleto' %}selected{% endif %}>Boleto</option>
+          </select>
+
+          <div class="summary">
+            <p>Quantidade de diarias: <strong id="summaryDays">0</strong></p>
+            <p>Valor base: <strong>R$ <span id="summaryBase">0.00</span></strong></p>
+            <p>Taxa retirada: <strong>R$ <span id="summaryPickup">0.00</span></strong></p>
+            <p>Valor total: <strong>R$ <span id="summaryTotal">0.00</span></strong></p>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Confirmar aluguel</button>
+            <a href="/aluguel" class="btn-link">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("aluguelForm");
+      const cpfInput = document.getElementById("cliente_cpf");
+      const startInput = document.getElementById("periodo_inicio");
+      const endInput = document.getElementById("periodo_fim");
+      const retiradaSelect = document.getElementById("retirada_em_casa");
+      const retiradaFeeWrap = document.getElementById("retiradaFeeWrap");
+      const retiradaFeeInput = document.getElementById("valor_retirada");
+      const summaryDays = document.getElementById("summaryDays");
+      const summaryBase = document.getElementById("summaryBase");
+      const summaryPickup = document.getElementById("summaryPickup");
+      const summaryTotal = document.getElementById("summaryTotal");
+      const dailyValue = parseFloat((document.getElementById("dailyValueText").textContent || "0").replace(",", ".")) || 0;
+
+      function parsePrice(value) {
+        if (!value) return 0;
+        let text = value.toString().replace(/[^\d.,-]/g, "");
+        const hasComma = text.includes(",");
+        const hasDot = text.includes(".");
+        if (hasComma && hasDot) {
+          if (text.lastIndexOf(",") > text.lastIndexOf(".")) {
+            text = text.replace(/\./g, "").replace(",", ".");
+          } else {
+            text = text.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          text = text.replace(",", ".");
+        }
+        const number = parseFloat(text);
+        return Number.isFinite(number) ? number : 0;
+      }
+
+      function formatPrice(value) {
+        return (value || 0).toFixed(2);
+      }
+
+      function validateCPF(cpf) {
+        if (!cpf) return false;
+        const cleaned = cpf.replace(/\D/g, "");
+        if (cleaned.length !== 11) return false;
+        if (/^([0-9])\1+$/.test(cleaned)) return false;
+        const calc = (t) => {
+          let sum = 0;
+          for (let i = 0; i < t; i += 1) sum += parseInt(cleaned.charAt(i), 10) * (t + 1 - i);
+          const r = 11 - (sum % 11);
+          return r > 9 ? 0 : r;
+        };
+        return calc(9) === parseInt(cleaned.charAt(9), 10) && calc(10) === parseInt(cleaned.charAt(10), 10);
+      }
+
+      function getDiarias() {
+        if (!startInput.value || !endInput.value) return 0;
+        const start = new Date(startInput.value + "T00:00:00");
+        const end = new Date(endInput.value + "T00:00:00");
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+        if (end < start) return 0;
+        const diffMs = end.getTime() - start.getTime();
+        return Math.floor(diffMs / 86400000) + 1;
+      }
+
+      function updateRetiradaDisplay() {
+        const selected = retiradaSelect.value === "yes";
+        retiradaFeeWrap.style.display = selected ? "block" : "none";
+        if (!selected) {
+          retiradaFeeInput.value = "";
+        }
+      }
+
+      function updateSummary() {
+        const diarias = getDiarias();
+        const base = diarias * dailyValue;
+        const pickup = retiradaSelect.value === "yes" ? parsePrice(retiradaFeeInput.value) : 0;
+        const total = base + pickup;
+        summaryDays.textContent = String(diarias);
+        summaryBase.textContent = formatPrice(base);
+        summaryPickup.textContent = formatPrice(pickup);
+        summaryTotal.textContent = formatPrice(total);
+      }
+
+      retiradaSelect.addEventListener("change", () => {
+        updateRetiradaDisplay();
+        updateSummary();
+      });
+      retiradaFeeInput.addEventListener("input", updateSummary);
+      startInput.addEventListener("change", updateSummary);
+      endInput.addEventListener("change", updateSummary);
+
+      form.addEventListener("submit", (event) => {
+        if (!validateCPF(cpfInput.value || "")) {
+          event.preventDefault();
+          alert("CPF invalido. Verifique e tente novamente.");
+          cpfInput.focus();
+        }
+      });
+
+      updateRetiradaDisplay();
+      updateSummary();
+    </script>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+  </body>
+</html>

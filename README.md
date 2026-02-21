@@ -1,14 +1,15 @@
-# CarroFácil
+# CarroFacil
 
-Aplicação Flask simples para gestão de estoque de veículos com tela de login de segurança e duas áreas principais:
+Aplicacao Flask para gestao de veiculos com login e modulos operacionais:
 
-- **Área de Cadastro**: cadastro de veículos para venda.
-- **Área de Venda**: visualização de estoque e marcação de veículos como vendidos.
-- **Tela Gerencial**: cadastro de comissão, cadastro de vendedor e criação de novos acessos com permissão gerencial.
+- Area de Cadastro: cadastro de veiculos para venda.
+- Area de Venda: visualizacao de estoque e marcacao de veiculos vendidos.
+- Area de Aluguel: cadastro de contratos de aluguel com cliente, periodo e pagamento.
+- Tela Gerencial: vendedores, comissoes, metas, acessos e diaria de aluguel por carro.
 
 ## Como executar
 
-1. Instale dependências:
+1. Instale dependencias:
 
 ```bash
 pip install -r requirements.txt
@@ -23,23 +24,26 @@ python app.py
 3. Acesse no navegador:
 
 - Login: `http://127.0.0.1:5000/login`
-- Painel principal (após login): `http://127.0.0.1:5000/`
+- Painel principal: `http://127.0.0.1:5000/`
 - Cadastro: `http://127.0.0.1:5000/cadastro`
 - Vendas: `http://127.0.0.1:5000/vendas`
+- Aluguel: `http://127.0.0.1:5000/aluguel`
 - Gerencial: `http://127.0.0.1:5000/gerencial`
 
-Credencial padrão de exemplo em `users.json`:
+Credencial padrao de exemplo em `users.json`:
 
-- Usuário: `joao`
+- Usuario: `joao`
 - Senha: `123456`
 
-## Persistência de dados
+## Persistencia de dados
 
-Os dados dos veículos são salvos em `vehicles.json`.
+- Veiculos: `vehicles.json`
+- Vendas: `sales.json`
+- Alugueis: `rentals.json`
 
-## Regras de cadastro
+## Regras de cadastro de veiculo
 
-Campos obrigatórios na área de cadastro:
+Campos obrigatorios:
 
 - Marca
 - Modelo
@@ -50,5 +54,5 @@ Campos obrigatórios na área de cadastro:
 
 Campos opcionais:
 
-- Preço
+- Preco
 - Quilometragem

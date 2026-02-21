@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     preco REAL NOT NULL DEFAULT 0 CHECK (preco >= 0),
     km TEXT,
     status TEXT NOT NULL DEFAULT 'disponivel' CHECK (status IN ('disponivel', 'vendido')),
+    diaria_aluguel REAL NOT NULL DEFAULT 0 CHECK (diaria_aluguel >= 0),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -69,6 +70,30 @@ CREATE TABLE IF NOT EXISTS sales (
     FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE RESTRICT
 );
 
+CREATE TABLE IF NOT EXISTS rentals (
+    id TEXT PRIMARY KEY,
+    vehicle_id TEXT NOT NULL,
+    vehicle_snapshot TEXT NOT NULL,
+    vendedor TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    cliente_nome TEXT NOT NULL,
+    cliente_cpf TEXT NOT NULL,
+    cliente_cnh TEXT NOT NULL,
+    cliente_endereco TEXT NOT NULL,
+    cliente_telefone TEXT NOT NULL,
+    periodo_inicio TEXT NOT NULL,
+    periodo_fim TEXT NOT NULL,
+    quantidade_diarias INTEGER NOT NULL CHECK (quantidade_diarias > 0),
+    valor_diaria REAL NOT NULL CHECK (valor_diaria >= 0),
+    valor_base REAL NOT NULL CHECK (valor_base >= 0),
+    retirada_em_casa INTEGER NOT NULL DEFAULT 0 CHECK (retirada_em_casa IN (0, 1)),
+    valor_retirada REAL NOT NULL DEFAULT 0 CHECK (valor_retirada >= 0),
+    forma_pagamento TEXT NOT NULL,
+    valor_total REAL NOT NULL CHECK (valor_total >= 0),
+    status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'encerrado')),
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE RESTRICT
+);
+
 CREATE TABLE IF NOT EXISTS leads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -89,6 +114,10 @@ CREATE INDEX IF NOT EXISTS idx_vehicles_marca_modelo ON vehicles(marca, modelo);
 CREATE INDEX IF NOT EXISTS idx_sales_vehicle_id ON sales(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
 CREATE INDEX IF NOT EXISTS idx_sales_vendedor ON sales(vendedor);
+CREATE INDEX IF NOT EXISTS idx_rentals_vehicle_id ON rentals(vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_rentals_created_at ON rentals(created_at);
+CREATE INDEX IF NOT EXISTS idx_rentals_periodo_inicio ON rentals(periodo_inicio);
+CREATE INDEX IF NOT EXISTS idx_rentals_status ON rentals(status);
 CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
 
 CREATE TRIGGER IF NOT EXISTS trg_users_updated_at

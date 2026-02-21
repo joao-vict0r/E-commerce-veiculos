@@ -71,6 +71,10 @@ Required fields:
 - `km` (string)
 - `status` (string: `disponivel` or `vendido`)
 
+Optional fields:
+
+- `diaria_aluguel` (string or number decimal, ex: `350.00`)
+
 ### `sales.json`
 
 Required fields:
@@ -90,6 +94,31 @@ Required fields:
 - `negociacao_valor` (number)
 - `base_price` (number)
 - `final_price` (number)
+
+### `rentals.json`
+
+Required fields:
+
+- `id` (string)
+- `vehicle_id` (string)
+- `vehicle` (object snapshot)
+- `vendedor` (string)
+- `created_at` (string datetime)
+- `cliente_nome` (string)
+- `cliente_cpf` (string)
+- `cliente_cnh` (string)
+- `cliente_endereco` (string)
+- `cliente_telefone` (string)
+- `periodo_inicio` (string date)
+- `periodo_fim` (string date)
+- `quantidade_diarias` (number)
+- `valor_diaria` (number)
+- `valor_base` (number)
+- `retirada_em_casa` (boolean)
+- `valor_retirada` (number)
+- `forma_pagamento` (string)
+- `valor_total` (number)
+- `status` (string: `ativo` or `encerrado`)
 
 ### `leads.json`
 

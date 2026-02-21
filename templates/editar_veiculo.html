@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Cadastro de Veículos</title>
+    <title>Editar Veiculo</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; }
       .container { max-width: 760px; margin: 24px auto; background: white; padding: 22px; border-radius: 12px; box-shadow: 0 6px 18px rgba(15,23,42,.08); }
@@ -11,61 +11,26 @@
       form { display: grid; gap: 10px; }
       label { font-weight: 600; font-size: 14px; }
       input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 4px; }
-      .actions { display: flex; gap: 8px; margin-top: 10px; }
+      .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
       button, a { border: 0; border-radius: 8px; padding: 10px 14px; text-decoration: none; font-weight: 600; }
       button { background: #0b6bff; color: white; cursor: pointer; }
       a { background: #1f2937; color: white; }
-      .success { background: #dcfce7; border: 1px solid #86efac; color: #166534; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
       .error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
       .required { color: #991b1b; }
-      .list-title { margin: 26px 0 10px; }
-      .table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-      }
-      table { width: 100%; border-collapse: collapse; background: #fff; }
-      th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-      th { background: #f1f5f9; }
-      tbody tr:last-child td { border-bottom: 0; }
-      .status-tag { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
-      .status-disponivel { background: #dcfce7; color: #166534; }
-      .status-vendido { background: #fee2e2; color: #991b1b; }
-      .edit-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 34px;
-        padding: 0 10px;
-        border-radius: 8px;
-        background: #0b6bff;
-        color: #fff;
-        text-decoration: none;
-        font-weight: 600;
-      }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-toggle.css') }}">
   </head>
   <body>
     <div class="container">
-      <h1>Área de Cadastro</h1>
-      <p>Cadastre os veículos que estarão disponíveis para venda.</p>
-      <p>Usuário logado: <strong>{{ user.name or user.username }}</strong> · <a href="/logout">Sair</a></p>
-
-      {% if created %}
-      <div class="success">Veículo cadastrado com sucesso.</div>
-      {% endif %}
-
-      {% if updated %}
-      <div class="success">Veículo atualizado com sucesso.</div>
-      {% endif %}
+      <h1>Editar Veiculo</h1>
+      <p>Altere os dados do veiculo cadastrado.</p>
+      <p>Usuario logado: <strong>{{ user.name or user.username }}</strong> - <a href="/logout">Sair</a></p>
 
       {% if error %}
       <div class="error">{{ error }}</div>
       {% endif %}
 
-      <form method="post" action="/cadastro">
+      <form method="post" action="/cadastro/{{ vehicle_id }}/editar">
         <label>Marca <span class="required">*</span>
           <input name="marca" value="{{ form_data.marca if form_data else '' }}" required>
         </label>
@@ -87,7 +52,7 @@
         <label>Data de vencimento do IPVA <span class="required">*</span>
           <input name="ipva_vencimento" type="date" value="{{ form_data.ipva_vencimento if form_data else '' }}" required>
         </label>
-        <label>Preço
+        <label>Preco
           <input id="preco_input" name="preco" placeholder="Ex: 89900 ou 89900,00" value="{{ form_data.preco if form_data else '' }}">
         </label>
         <label>Quilometragem
@@ -95,53 +60,10 @@
         </label>
 
         <div class="actions">
-          <button type="submit">Salvar cadastro</button>
-          <a href="/" class="floating-back-btn">Voltar ao painel</a>
+          <button type="submit">Salvar alteracoes</button>
+          <a href="/cadastro" class="floating-back-btn">Voltar ao cadastro</a>
         </div>
       </form>
-
-      <h2 class="list-title">Veículos cadastrados</h2>
-      {% set listed_vehicles = vehicles_registry|default([]) %}
-      {% if listed_vehicles %}
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Veículo</th>
-              <th>Ano</th>
-              <th>Placa</th>
-              <th>Preço</th>
-              <th>Status</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for vehicle in listed_vehicles %}
-            <tr>
-              <td>{{ vehicle.id }}</td>
-              <td>{{ vehicle.marca }} {{ vehicle.modelo }}</td>
-              <td>{{ vehicle.ano }}</td>
-              <td>{{ (vehicle.placa or '-')|upper }}</td>
-              <td>{% if vehicle.preco %}R$ {{ vehicle.preco }}{% else %}-{% endif %}</td>
-              <td>
-                {% if vehicle.status == 'vendido' %}
-                  <span class="status-tag status-vendido">vendido</span>
-                {% else %}
-                  <span class="status-tag status-disponivel">disponivel</span>
-                {% endif %}
-              </td>
-              <td>
-                <a href="/cadastro/{{ vehicle.id }}/editar" class="edit-btn">Editar</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p>Nenhum veículo cadastrado ainda.</p>
-      {% endif %}
     </div>
     <script>
       (function(){
@@ -194,7 +116,6 @@
           preco.addEventListener('blur', ()=>{
             const v = parsePrice(preco.value);
             if(v === 0){
-              // leave empty if user cleared
               if(preco.value.trim()==='') return;
             }
             preco.value = formatPrice(v);
@@ -205,5 +126,3 @@
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
   </body>
 </html>
-
-

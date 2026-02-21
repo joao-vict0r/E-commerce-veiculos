@@ -9,7 +9,8 @@
     "ipva_vencimento": "2026-12-12",
     "preco": "21000.00",
     "km": "230.000",
-    "status": "vendido"
+    "status": "vendido",
+    "diaria_aluguel": "450.00"
   },
   {
     "id": "7e6e3ba4",
@@ -46,6 +47,7 @@
     "ipva_vencimento": "2026-09-12",
     "preco": "21000.00",
     "km": "80.000",
-    "status": "disponivel"
+    "status": "disponivel",
+    "diaria_aluguel": "900.00"
   }
 ]

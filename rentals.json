@@ -1,0 +1,37 @@
+[
+  {
+    "id": "d248dbf2",
+    "vehicle_id": "85a62e1b",
+    "vehicle": {
+      "id": "85a62e1b",
+      "marca": "volkswagen",
+      "modelo": "Golf",
+      "cor": "preto",
+      "ano": "2025",
+      "renavam": "12334454",
+      "placa": "HTL7676",
+      "ipva_vencimento": "2026-09-12",
+      "preco": "21000.00",
+      "km": "80.000",
+      "status": "disponivel",
+      "diaria_aluguel": "900.00"
+    },
+    "vendedor": "Joao Silva",
+    "created_at": "2026-02-20 23:11:38",
+    "cliente_nome": "joao victor",
+    "cliente_cpf": "123.349.139-36",
+    "cliente_cnh": "1212312312",
+    "cliente_endereco": "R. Bahia, 5800 - Salto Weissbach, Blumenau - SC, 89032-001",
+    "cliente_telefone": "47988572115",
+    "periodo_inicio": "2026-02-21",
+    "periodo_fim": "2026-02-25",
+    "quantidade_diarias": 5,
+    "valor_diaria": 900.0,
+    "valor_base": 4500.0,
+    "retirada_em_casa": false,
+    "valor_retirada": 0.0,
+    "forma_pagamento": "dinheiro",
+    "valor_total": 4500.0,
+    "status": "ativo"
+  }
+]
