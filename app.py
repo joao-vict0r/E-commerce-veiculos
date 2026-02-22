@@ -7,6 +7,8 @@ from typing import Any
 from datetime import datetime
 from uuid import uuid4
 import xml.etree.ElementTree as ET
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
 from flask import Flask, redirect, render_template, request, send_file, session, url_for
 
@@ -32,6 +34,17 @@ REQUIRED_FIELDS = {
     "ipva_vencimento": "Data de vencimento do IPVA",
 }
 
+ph = PasswordHasher()
+
+def hash_password(password: str) -> str:
+    return ph.hash(password)
+
+def verify_password(password: str, hashed: str) -> bool:
+    try:
+        ph.verify(hashed, password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 def _read_json_array(path: str) -> list[dict[str, Any]]:
     try:
@@ -150,6 +163,11 @@ def sync_users_to_db(users: list[dict[str, Any]]) -> None:
             except (TypeError, ValueError):
                 user_id = None
 
+            raw_password = str(user.get("password") or "").strip()
+            if raw_password.startswith("$argon2"):
+                stored_password = raw_password
+            else:
+                stored_password = hash_password(raw_password) if raw_password else ""
             connection.execute(
                 """
                 INSERT INTO users (id, username, name, email, password, is_manager)
@@ -165,7 +183,7 @@ def sync_users_to_db(users: list[dict[str, Any]]) -> None:
                     username,
                     str(user.get("name") or username).strip(),
                     str(user.get("email") or "").strip(),
-                    str(user.get("password") or "").strip(),
+                    stored_password,
                     _to_db_bool_int(user.get("is_manager")),
                 ),
             )
@@ -604,9 +622,18 @@ def create_app() -> Flask:
             return None
 
         for user in load_users():
+            stored_hash = str(user.get("password") or "")
             by_username = (user.get("username") or "").strip().lower() == normalized
-            if by_username and str(user.get("password") or "") == secret:
-                return user
+            if not by_username:
+                continue
+            if stored_hash.startswith("$argon2"):
+                if verify_password(secret, stored_hash):
+                    return user
+            else:
+                if stored_hash == secret:
+                    user["password"] = hash_password(secret)
+                    return user
+
         return None
 
     @app.route("/login", methods=["GET", "POST"])
@@ -1076,7 +1103,7 @@ def create_app() -> Flask:
                             "id": len(users) + 1,
                             "username": username,
                             "name": full_name or username,
-                            "password": password,
+                            "password": hash_password(password),
                             "is_manager": is_manager,
                         })
                         save_users(users)
