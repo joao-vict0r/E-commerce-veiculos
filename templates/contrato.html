@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Contrato de Aluguel - {{ rental.id }}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #0f172a; }
+      .sheet { max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; background: #fff; }
+      h1 { margin-top: 0; }
+      .row { display:flex; gap:12px; }
+      .col { flex:1 }
+      .meta { margin-bottom: 12px; color: #475569 }
+      .sign { margin-top: 36px; display:flex; gap:24px; }
+      .sign .box { flex:1; border-top:1px dashed #cbd5e1; padding-top:12px; text-align:center }
+      .actions { text-align:right; margin-top:12px }
+      .btn { padding:8px 12px; border-radius:8px; background:#0b6bff; color:#fff; text-decoration:none }
+      @media print { .actions { display:none } }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h1>Contrato de Aluguel</h1>
+        <small class="meta">Contrato: {{ rental.id }} - Emitido: {{ rental.created_at }}</small>
+      </div>
+
+      <h3>Dados do Veículo</h3>
+      <p>{{ rental.vehicle.marca }} {{ rental.vehicle.modelo }} - Placa: {{ (rental.vehicle.placa or '-')|upper }}</p>
+
+      <h3>Dados do Cliente</h3>
+      <p><strong>{{ rental.cliente_nome }}</strong><br>
+      CPF: {{ rental.cliente_cpf }} &nbsp; CNH: {{ rental.cliente_cnh }}<br>
+      Endereço: {{ rental.cliente_endereco }}<br>
+      Telefone: {{ rental.cliente_telefone }}</p>
+
+      <h3>Período e Valores</h3>
+      <p>Período: {{ rental.periodo_inicio }} até {{ rental.periodo_fim }}<br>
+      Diárias: {{ rental.quantidade_diarias }} &nbsp; Valor diária: R$ {{ '%.2f'|format(rental.valor_diaria|float) }}<br>
+      Valor total: R$ {{ '%.2f'|format(rental.valor_total|float) }}</p>
+
+      <h3>Condições</h3>
+      <p>Forma de pagamento: {{ rental.forma_pagamento }}<br>
+      Retirada em casa: {{ 'Sim' if rental.retirada_em_casa else 'Não' }}</p>
+
+      <div class="sign">
+        <div class="box">Assinatura do Locador<br><small>(Nome / CPF)</small></div>
+        <div class="box">Assinatura do Locatário<br><small>(Nome / CPF)</small></div>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="#" onclick="window.print();return false">Imprimir / Salvar PDF</a>
+        <a class="btn" style="background:#6b7280;margin-left:8px" href="{{ url_for('aluguel') }}">Voltar</a>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+  </body>
+</html>

@@ -1616,6 +1616,26 @@ def create_app() -> Flask:
 
         return render_template("alugar.html", vehicle=vehicle_view, error=None, form_data={})
 
+    @app.route("/aluguel/<rental_id>/contrato", methods=["GET"])
+    def contrato_rental(rental_id: str):
+        auth_redirect = require_authentication()
+        if auth_redirect:
+            return auth_redirect
+
+        rentals = load_rentals()
+        rental = next((r for r in rentals if str(r.get("id") or "") == str(rental_id)), None)
+        if rental is None:
+            return redirect(url_for("aluguel"))
+
+        # normalize numbers
+        rental = dict(rental)
+        try:
+            rental["valor_total"] = float(rental.get("valor_total") or 0)
+        except Exception:
+            rental["valor_total"] = 0.0
+
+        return render_template("contrato.html", rental=rental)
+
     @app.route("/vendas/<vehicle_id>/vender", methods=["GET", "POST"])
     def vender(vehicle_id: str):
         auth_redirect = require_authentication()

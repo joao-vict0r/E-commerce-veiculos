@@ -180,6 +180,7 @@
               <th>Periodo</th>
               <th>Diarias</th>
               <th>Total</th>
+              <th>Contrato</th>
               <th>Pagamento</th>
             </tr>
           </thead>
@@ -192,6 +193,9 @@
               <td>{{ rental.periodo_inicio }} ate {{ rental.periodo_fim }}</td>
               <td>{{ rental.quantidade_diarias }}</td>
               <td>R$ {{ '%.2f'|format((rental.valor_total or 0)|float) }}</td>
+              <td>
+                <a class="action-btn" href="{{ url_for('contrato_rental', rental_id=rental.id) }}" target="_blank">Emitir Contrato</a>
+              </td>
               <td>{{ rental.forma_pagamento or '-' }}</td>
             </tr>
             {% endfor %}
