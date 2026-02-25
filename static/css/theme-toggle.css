@@ -208,3 +208,34 @@ body.dark-theme textarea {
   color: #e2e8f0 !important;
   border-color: #334155 !important;
 }
+/* Default alert styles (light mode) to standardize across templates */
+.msg-ok {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.msg-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+/* Alerts: ensure good contrast for success / error messages in dark mode */
+body.dark-theme .msg-ok {
+  background: #064e3b !important; /* darker green */
+  border: 1px solid #0f766e !important;
+  color: #bbf7d0 !important; /* light mint text */
+}
+
+body.dark-theme .msg-error {
+  background: rgba(124, 58, 58, 0.16) !important; /* subtle dark red */
+  border: 1px solid #7f1d1d !important;
+  color: #fecaca !important; /* light red/pink text */
+}

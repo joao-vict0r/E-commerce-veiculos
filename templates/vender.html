@@ -36,7 +36,7 @@
 
       <div class="card">
         {% if error %}
-        <div style="background:#fee2e2;color:#991b1b;padding:10px;border-radius:6px;margin-bottom:8px">{{ error }}</div>
+        <div class="msg-error">{{ error }}</div>
         {% endif %}
         <form method="post" action="/vendas/{{ vehicle.id }}/vender" id="vendaForm">
           <label>Vendedor</label>
